@@ -1,20 +1,21 @@
 import { createClient } from "@libsql/client";
-import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { drizzle } from "drizzle-orm/libsql";
 import { readFileSync } from "node:fs";
 import * as schema from "@/db/schema";
 import { uuid, publicId } from "@/lib/ids";
 
-export type TestDB = LibSQLDatabase<typeof schema>;
-
 // Build an isolated in-memory libsql DB whose tables come from the checked-in
 // schema snapshot (test/schema.sql, generated from the pushed schema). Async because
 // libsql client setup is async.
-export async function makeTestDb(): Promise<TestDB> {
+export async function makeTestDb() {
   const client = createClient({ url: ":memory:" });
   await client.execute("PRAGMA foreign_keys=ON");
   await client.executeMultiple(readFileSync("test/schema.sql", "utf8"));
   return drizzle(client, { schema });
 }
+
+// Derived from the real return type so it matches `DB` (includes $client).
+export type TestDB = Awaited<ReturnType<typeof makeTestDb>>;
 
 export async function seedOrg(db: TestDB) {
   const orgId = uuid();

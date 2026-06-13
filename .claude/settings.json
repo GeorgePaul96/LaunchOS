@@ -6,7 +6,15 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'chore: scaffold Next.js + Drizzle + Vitest project *)",
       "Bash(node --input-type=module -e \"import {createClient} from '@libsql/client'; const c=createClient\\({url:'file:launchos.db'}\\); const r=await c.execute\\(\\\\\"select name from sqlite_master where type='table' order by name\\\\\"\\); console.log\\(r.rows.map\\(x=>x.name\\).join\\(','\\)\\);\")",
-      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(db\\): Drizzle SQLite schema \\(subset of canonical schema\\) *)"
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(db\\): Drizzle SQLite schema \\(subset of canonical schema\\) *)",
+      "Bash(npx vitest *)",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(lib\\): prefixed public id generator + RFC-9457 error helpers *)",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(lib\\): org-scoped query helpers + tenant isolation guard *)",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(lib\\): scrypt password hashing + signed-cookie sessions *)",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(channel\\): ChannelProvider interface + MockChannelProvider *)",
+      "Bash(echo \"TSC:$?\")",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(publishing\\): post lifecycle service + in-process scheduler *)",
+      "Bash(git -c user.name=\"LaunchOS Dev\" -c user.email=\"geopaul96@gmail.com\" commit -q -m \"fix\\(test\\): derive TestDB type from drizzle return so it matches DB\")"
     ]
   }
 }
