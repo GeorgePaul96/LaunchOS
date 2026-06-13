@@ -4,7 +4,9 @@
       "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'docs: core flywheel slice implementation plan *)",
       "Bash(npm install *)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'chore: scaffold Next.js + Drizzle + Vitest project *)"
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'chore: scaffold Next.js + Drizzle + Vitest project *)",
+      "Bash(node --input-type=module -e \"import {createClient} from '@libsql/client'; const c=createClient\\({url:'file:launchos.db'}\\); const r=await c.execute\\(\\\\\"select name from sqlite_master where type='table' order by name\\\\\"\\); console.log\\(r.rows.map\\(x=>x.name\\).join\\(','\\)\\);\")",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(db\\): Drizzle SQLite schema \\(subset of canonical schema\\) *)"
     ]
   }
 }

@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:push": "drizzle-kit push",
+    "db:push": "drizzle-kit push --force",
     "db:seed": "tsx db/seed.ts",
     "setup": "npm run db:push && npm run db:seed",
     "test": "vitest run",
