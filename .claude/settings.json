@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'docs: core flywheel slice implementation plan *)",
+      "Bash(npm install *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'chore: scaffold Next.js + Drizzle + Vitest project *)"
+    ]
+  }
+}
