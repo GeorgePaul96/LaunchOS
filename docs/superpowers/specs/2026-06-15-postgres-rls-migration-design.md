@@ -85,30 +85,37 @@ default (superuser/`BYPASSRLS`) role is reserved for `withServiceRole` cross-org
 
 ---
 
-## 2. Data model (sqlite-core → pg-core)
+## 2. Data model (sqlite-core → pg-core, logical types preserved)
 
-Port `db/schema.ts` (19 tables) to `drizzle-orm/pg-core`, matching `launchos_schema.sql`
-native types:
+Port `db/schema.ts` (19 tables) from `drizzle-orm/sqlite-core` to `drizzle-orm/pg-core`,
+**keeping the same logical column types** so service code and the 36 tests stay byte-for-byte
+unchanged. Native-type fidelity (uuid/timestamptz/jsonb/numeric, per `launchos_schema.sql`) is
+deliberately **deferred** to a later "type fidelity" pass — converting now would change string
+representations (e.g. timestamptz prints `2026-06-01 00:00:00+00`, not `...T...Z`) and cascade
+into services + test assertions, breaking the zero-change goal. The headline deliverable (real
+Postgres + enforced RLS) does not depend on native types.
 
-| SQLite (current) | Postgres (target) |
-|---|---|
-| `text` PK | `uuid` PK, default `gen_random_uuid()` |
-| ISO-8601 text timestamps | `timestamptz` (default `now()`) |
-| JSON-in-text | `jsonb` |
-| JSON-array-in-text (`text[]` cols) | native `text[]` |
-| integer autoincrement (`touchpoints`, `conversions`, `attribution_results`) | `bigint generated always as identity` |
-| integer-as-boolean (`platforms.is_active`, `posts.publish_now`) | `boolean` |
-| `attribution_results.credit` as basis points (int) | `numeric` fraction (revert workaround) |
-| money cents | unchanged (`integer`/`bigint` cents) |
+| SQLite (current) | Postgres (this pass) | Deferred fidelity target |
+|---|---|---|
+| `text` PK | `text` PK (app-generated uuidv4 string) | `uuid` |
+| ISO-8601 text timestamps | `text` (ISO-8601 string) | `timestamptz` |
+| JSON-in-text | `text` (JSON string) | `jsonb` |
+| JSON-array-in-text | `text` (JSON string) | `text[]` |
+| integer autoincrement (`touchpoints`, `conversions`, `attribution_results`) | `integer` `generatedAlwaysAsIdentity()` | `bigint` identity |
+| integer-as-boolean (`platforms.is_active`, `posts.publish_now`) | `boolean` | `boolean` |
+| `attribution_results.credit` basis points (int) | `integer` basis points (kept) | `numeric` fraction |
+| money cents | `integer`/`bigint` cents (unchanged) | unchanged |
 
-- Add `pgcrypto` extension (for `gen_random_uuid()`).
-- Every org-scoped table: RLS enabled + forced + `org_isolation` policy (§1.3).
-- `app.current_org` GUC must be registered/usable — `current_setting('app.current_org', true)`
-  with the `true` (missing_ok) flag means an unset GUC returns NULL → policy fails closed.
+- `timestamp` columns use `text` (not `timestamp`) so reads return the exact ISO strings the
+  services compare and the tests assert — **no service or test changes**.
+- Every org-scoped table: RLS enabled + forced + `org_isolation` policy (§1.3). Because
+  `org_id` stays `text`, the policy compares text to the GUC directly (no `::uuid` cast).
+- `current_setting('app.current_org', true)` uses the `true` (missing_ok) flag → an unset GUC
+  returns NULL → policy fails closed.
 - Keep `org_id` filters in services (`lib/org-context.ts`, all `lib/*` services) unchanged.
 
-The basis-points→numeric revert touches `lib/attribution/report.ts` (store the fraction
-directly) and its test expectation — the only feature-code change in this sub-project.
+**Net feature-code change in this sub-project: none.** Only the DB driver, schema definitions
+(same logical types), migrations, RLS wiring, and test harness change.
 
 ---
 
@@ -140,8 +147,8 @@ calls the same `publishTarget` service.
   org-B table row (bypassing the app-level `org_id` filter) returns **zero rows**; switching
   the GUC to orgB returns it. Proves RLS independent of the filters.
 - **Service-role test (new):** `withServiceRole` reads rows across two orgs (scheduler path).
-- **Regression:** all 36 existing tests pass against the Postgres-backed test DB (signatures
-  unchanged; only the attribution credit assertion changes from basis points to fraction).
+- **Regression:** all 36 existing tests pass against the Postgres-backed test DB, unchanged
+  (signatures and assertions identical — logical types preserved, see §2).
 - **Build/boot:** `npm run setup` (migrate + seed) on PGlite, `npm run dev` boots, production
   build green.
 
@@ -150,8 +157,9 @@ calls the same `publishTarget` service.
 ## 6. Out of scope
 
 Other P1 sub-projects (durable runtime, AI gateway, billing, OpenAPI→SDK→MCP, observability);
-the ~40 not-yet-used canonical tables; provisioning an actual managed Postgres instance (prod
-is wired by `DATABASE_URL` only, not stood up here); pgvector-backed features (extension
+the ~40 not-yet-used canonical tables; **native-type fidelity** (uuid/timestamptz/jsonb/numeric
+— deferred to a dedicated later pass, see §2); provisioning an actual managed Postgres instance
+(prod is wired by `DATABASE_URL` only, not stood up here); pgvector-backed features (extension
 available but no RAG yet).
 
 ---
