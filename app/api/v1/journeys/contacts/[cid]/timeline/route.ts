@@ -4,8 +4,9 @@ import { contactTimeline } from "@/lib/journey/timeline";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ cid: string }> }) {
   try {
-    const { db, orgId } = await requireContext();
+    const ctx = await requireContext();
     const { cid } = await params;
-    return ok({ data: await contactTimeline(db, orgId, cid) });
+    const data = await ctx.withOrg((db) => contactTimeline(db, ctx.orgId, cid));
+    return ok({ data });
   } catch (e) { return toProblemResponse(e); }
 }

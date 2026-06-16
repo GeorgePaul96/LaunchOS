@@ -4,7 +4,8 @@ import { toProblemResponse } from "@/lib/errors";
 
 export async function GET() {
   try {
-    const { db, orgId } = await requireContext();
-    return ok({ data: await listAccounts(db, orgId) });
+    const ctx = await requireContext();
+    const data = await ctx.withOrg((db) => listAccounts(db, ctx.orgId));
+    return ok({ data });
   } catch (e) { return toProblemResponse(e); }
 }

@@ -6,11 +6,14 @@ import { contactTimeline } from "@/lib/journey/timeline";
 export const dynamic = "force-dynamic";
 
 export default async function ContactPage({ params }: { params: Promise<{ id: string }> }) {
-  const { db, orgId } = await getOrgContextOrRedirect();
+  const ctx = await getOrgContextOrRedirect();
   const { id } = await params;
-  const [contact] = await db.select().from(schema.contacts).where(and(eq(schema.contacts.id, id), eq(schema.contacts.orgId, orgId)));
+  const { contact, timeline } = await ctx.withOrg(async (db) => {
+    const [contact] = await db.select().from(schema.contacts).where(and(eq(schema.contacts.id, id), eq(schema.contacts.orgId, ctx.orgId)));
+    const timeline = contact ? await contactTimeline(db, ctx.orgId, id) : [];
+    return { contact, timeline };
+  });
   if (!contact) return <div>Contact not found.</div>;
-  const timeline = await contactTimeline(db, orgId, id);
 
   return (
     <div className="max-w-2xl">
@@ -23,7 +26,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
             <span className="text-neutral-400">{e.occurredAt.slice(0, 16).replace("T", " ")}</span>{" — "}
             {e.kind === "touchpoint"
               ? <span><b>{e.channel}</b>{e.platform ? ` (${e.platform})` : ""} touch</span>
-              : <span className="text-green-700"><b>{e.eventName}</b>{e.valueCents ? ` $${(e.valueCents/100).toFixed(2)}` : ""}</span>}
+              : <span className="text-green-700"><b>{e.eventName}</b>{e.valueCents ? ` $${(e.valueCents / 100).toFixed(2)}` : ""}</span>}
           </li>
         ))}
         {timeline.length === 0 && <li className="text-neutral-500">No journey events.</li>}
