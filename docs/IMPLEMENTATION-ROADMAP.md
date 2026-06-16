@@ -60,7 +60,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 | Phase | Theme | Outcome | Systems |
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
-| **P1** ⬜ | Production foundation | The slice, but production-grade & multi-tenant-safe | Postgres+RLS migration, durable jobs, AI gateway, billing, OpenAPI→SDK→MCP, observability |
+| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ⬜ durable jobs, AI gateway, billing, OpenAPI→SDK→MCP, observability |
 | **P2** ⬜ | MVP completion | Spec §11 fully met | Real wrapped provider (5 channels), Viral Generator, Campaign Brain, inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
@@ -97,7 +97,7 @@ against.
 
 ## 4. P1 — Production foundation (cross-cutting)
 
-### 4.1 ⬜ Postgres + RLS migration
+### 4.1 ✅ Postgres + RLS migration
 - **Scope:** move from SQLite/libsql to Postgres 16; apply `launchos_schema.sql` verbatim
   (it is already the canonical schema); enable Row-Level Security on every org-scoped table
   with policies keyed on `app.current_org`; service workers use a `BYPASSRLS` role. Keep the

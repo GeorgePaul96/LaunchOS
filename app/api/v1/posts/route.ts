@@ -6,36 +6,39 @@ import { createPost, listPosts } from "@/lib/publishing/service";
 
 export async function GET() {
   try {
-    const { db, orgId } = await requireContext();
-    return ok({ data: await listPosts(db, orgId) });
+    const ctx = await requireContext();
+    const data = await ctx.withOrg((db) => listPosts(db, ctx.orgId));
+    return ok({ data });
   } catch (e) { return toProblemResponse(e); }
 }
 
 export async function POST(req: Request) {
   try {
-    const { db, orgId, userId } = await requireContext();
+    const ctx = await requireContext();
     const idemKey = req.headers.get("Idempotency-Key");
-    if (idemKey) {
-      const [hit] = await db.select().from(schema.idempotencyKeys).where(eq(schema.idempotencyKeys.key, idemKey));
-      if (hit) return ok(JSON.parse(hit.responseJson), 200);
-    }
     const body = await req.json();
     if (!body.profileId || !Array.isArray(body.accountIds)) {
       throw new ApiError(400, "invalid_request", "profileId and accountIds[] required");
     }
-    const post = await createPost(db, orgId, {
-      profileId: body.profileId,
-      content: body.content ?? "",
-      accountIds: body.accountIds,
-      scheduledFor: body.scheduledFor ?? null,
-      campaignId: body.campaignId ?? null,
-      overrides: body.overrides,
+    const responseBody = await ctx.withOrg(async (db) => {
+      if (idemKey) {
+        const [hit] = await db.select().from(schema.idempotencyKeys).where(eq(schema.idempotencyKeys.key, idemKey));
+        if (hit) return JSON.parse(hit.responseJson);
+      }
+      const post = await createPost(db, ctx.orgId, {
+        profileId: body.profileId,
+        content: body.content ?? "",
+        accountIds: body.accountIds,
+        scheduledFor: body.scheduledFor ?? null,
+        campaignId: body.campaignId ?? null,
+        overrides: body.overrides,
+      });
+      const out = { post: { id: post.publicId, status: post.status } };
+      if (idemKey) {
+        await db.insert(schema.idempotencyKeys).values({ key: idemKey, orgId: ctx.orgId, responseJson: JSON.stringify(out) });
+      }
+      return out;
     });
-    void userId;
-    const responseBody = { post: { id: post.publicId, status: post.status } };
-    if (idemKey) {
-      await db.insert(schema.idempotencyKeys).values({ key: idemKey, orgId, responseJson: JSON.stringify(responseBody) });
-    }
     return ok(responseBody, 202);
   } catch (e) { return toProblemResponse(e); }
 }

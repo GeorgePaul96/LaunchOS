@@ -1,18 +1,12 @@
-// SQLite subset of launchos_schema.sql (canonical Postgres remains source of truth).
-// Divergences from Postgres:
-//   uuid PK            -> text (app-generated uuidv4, see lib/ids.ts)
-//   timestamptz        -> text (ISO-8601 UTC)
-//   jsonb / text[]     -> text holding JSON
-//   bigint identity    -> integer autoincrement
-//   RLS policies       -> org_id filtering in lib/org-context.ts
-//   pgvector/citext    -> omitted (out of slice)
-// Driver: libsql (@libsql/client) instead of better-sqlite3 (prebuilt binary; no
-//   native toolchain required). Table definitions are driver-agnostic sqlite-core.
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+// Postgres schema (drizzle-orm/pg-core), logical types preserved from the SQLite slice so
+// service code + tests are unchanged. Native-type fidelity (uuid/timestamptz/jsonb/numeric)
+// is deferred — see docs/superpowers/specs/2026-06-15-postgres-rls-migration-design.md §2.
+// Driver: PGlite (dev/test) / node-postgres (prod). Canonical source: launchos_schema.sql.
+import { pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
 
 const now = () => new Date().toISOString();
 
-export const organizations = sqliteTable("organizations", {
+export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   name: text("name").notNull(),
@@ -23,7 +17,7 @@ export const organizations = sqliteTable("organizations", {
   updatedAt: text("updated_at").notNull().$defaultFn(now),
 });
 
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   email: text("email").notNull().unique(),
@@ -32,7 +26,7 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const memberships = sqliteTable("memberships", {
+export const memberships = pgTable("memberships", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   userId: text("user_id").notNull().references(() => users.id),
@@ -41,7 +35,7 @@ export const memberships = sqliteTable("memberships", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const apiKeys = sqliteTable("api_keys", {
+export const apiKeys = pgTable("api_keys", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
@@ -51,7 +45,7 @@ export const apiKeys = sqliteTable("api_keys", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const profiles = sqliteTable("profiles", {
+export const profiles = pgTable("profiles", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -61,15 +55,15 @@ export const profiles = sqliteTable("profiles", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const platforms = sqliteTable("platforms", {
+export const platforms = pgTable("platforms", {
   key: text("key").primaryKey(),
   displayName: text("display_name").notNull(),
   category: text("category").notNull(),
   capabilities: text("capabilities").notNull().default("[]"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-export const socialAccounts = sqliteTable("social_accounts", {
+export const socialAccounts = pgTable("social_accounts", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -83,7 +77,7 @@ export const socialAccounts = sqliteTable("social_accounts", {
   connectedAt: text("connected_at").notNull().$defaultFn(now),
 });
 
-export const campaigns = sqliteTable("campaigns", {
+export const campaigns = pgTable("campaigns", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -97,7 +91,7 @@ export const campaigns = sqliteTable("campaigns", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const posts = sqliteTable("posts", {
+export const posts = pgTable("posts", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -107,7 +101,7 @@ export const posts = sqliteTable("posts", {
   mediaIds: text("media_ids").notNull().default("[]"),
   status: text("status").notNull().default("draft"),
   scheduledFor: text("scheduled_for"),
-  publishNow: integer("publish_now", { mode: "boolean" }).notNull().default(false),
+  publishNow: boolean("publish_now").notNull().default(false),
   origin: text("origin").notNull().default("manual"),
   originRef: text("origin_ref"),
   campaignId: text("campaign_id").references(() => campaigns.id),
@@ -115,7 +109,7 @@ export const posts = sqliteTable("posts", {
   updatedAt: text("updated_at").notNull().$defaultFn(now),
 });
 
-export const postTargets = sqliteTable("post_targets", {
+export const postTargets = pgTable("post_targets", {
   id: text("id").primaryKey(),
   postId: text("post_id").notNull().references(() => posts.id),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -133,7 +127,7 @@ export const postTargets = sqliteTable("post_targets", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const accountMetricsDaily = sqliteTable("account_metrics_daily", {
+export const accountMetricsDaily = pgTable("account_metrics_daily", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   accountId: text("account_id").notNull().references(() => socialAccounts.id),
@@ -144,7 +138,7 @@ export const accountMetricsDaily = sqliteTable("account_metrics_daily", {
   engagement: integer("engagement"),
 });
 
-export const contacts = sqliteTable("contacts", {
+export const contacts = pgTable("contacts", {
   id: text("id").primaryKey(),
   publicId: text("public_id").notNull().unique(),
   orgId: text("org_id").notNull().references(() => organizations.id),
@@ -158,7 +152,7 @@ export const contacts = sqliteTable("contacts", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const contactChannels = sqliteTable("contact_channels", {
+export const contactChannels = pgTable("contact_channels", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   contactId: text("contact_id").notNull().references(() => contacts.id),
@@ -168,7 +162,7 @@ export const contactChannels = sqliteTable("contact_channels", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const identities = sqliteTable("identities", {
+export const identities = pgTable("identities", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   anonymousId: text("anonymous_id"),
@@ -178,8 +172,8 @@ export const identities = sqliteTable("identities", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const touchpoints = sqliteTable("touchpoints", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const touchpoints = pgTable("touchpoints", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   identityId: text("identity_id").references(() => identities.id),
   channel: text("channel").notNull(),
@@ -191,8 +185,8 @@ export const touchpoints = sqliteTable("touchpoints", {
   occurredAt: text("occurred_at").notNull().$defaultFn(now),
 });
 
-export const conversions = sqliteTable("conversions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const conversions = pgTable("conversions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   identityId: text("identity_id").references(() => identities.id),
   eventName: text("event_name").notNull(),
@@ -202,17 +196,17 @@ export const conversions = sqliteTable("conversions", {
   metadata: text("metadata").notNull().default("{}"),
 });
 
-export const attributionResults = sqliteTable("attribution_results", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const attributionResults = pgTable("attribution_results", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   conversionId: integer("conversion_id").notNull().references(() => conversions.id),
   model: text("model").notNull(),
   touchpointId: integer("touchpoint_id").references(() => touchpoints.id),
-  credit: integer("credit").notNull(), // stored as basis points (0..10000) to stay integer
+  credit: integer("credit").notNull(), // basis points 0..10000 (numeric fidelity deferred)
   creditedValueCents: integer("credited_value_cents").notNull().default(0),
 });
 
-export const journeys = sqliteTable("journeys", {
+export const journeys = pgTable("journeys", {
   id: text("id").primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),
   profileId: text("profile_id").references(() => profiles.id),
@@ -221,7 +215,7 @@ export const journeys = sqliteTable("journeys", {
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
-export const idempotencyKeys = sqliteTable("idempotency_keys", {
+export const idempotencyKeys = pgTable("idempotency_keys", {
   key: text("key").primaryKey(),
   orgId: text("org_id").notNull(),
   responseJson: text("response_json").notNull(),

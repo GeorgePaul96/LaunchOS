@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "@/db/client";
+import { withOrg as withOrgScoped, type DB } from "@/db/client";
 import { SESSION_COOKIE, sessionSecret, verifySession } from "@/lib/auth";
 
 export async function getOrgContextOrRedirect() {
@@ -8,5 +8,10 @@ export async function getOrgContextOrRedirect() {
   const token = store.get(SESSION_COOKIE)?.value;
   const payload = token ? verifySession(token, sessionSecret()) : null;
   if (!payload) redirect("/login");
-  return { db, orgId: payload.orgId, userId: payload.userId };
+  const orgId = payload.orgId;
+  return {
+    orgId,
+    userId: payload.userId,
+    withOrg: <T,>(fn: (db: DB) => Promise<T>) => withOrgScoped(orgId, fn),
+  };
 }

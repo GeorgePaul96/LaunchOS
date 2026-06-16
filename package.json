@@ -7,21 +7,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:push": "drizzle-kit push --force",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
-    "setup": "npm run db:push && npm run db:seed",
+    "setup": "npm run db:migrate && npm run db:seed",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@libsql/client": "^0.15.0",
+    "@electric-sql/pglite": "^0.5.2",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.9",
+    "pg": "^8.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",

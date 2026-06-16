@@ -7,9 +7,10 @@ const MODELS = ["first_touch", "last_touch", "linear"];
 
 export async function GET(req: Request) {
   try {
-    const { db, orgId } = await requireContext();
+    const ctx = await requireContext();
     const model = (new URL(req.url).searchParams.get("model") ?? "linear") as AttributionModel;
     if (!MODELS.includes(model)) throw new ApiError(400, "invalid_request", `model must be one of ${MODELS.join(", ")}`);
-    return ok(await buildReport(db, orgId, model));
+    const report = await ctx.withOrg((db) => buildReport(db, ctx.orgId, model));
+    return ok(report);
   } catch (e) { return toProblemResponse(e); }
 }

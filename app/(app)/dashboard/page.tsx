@@ -7,11 +7,13 @@ import { listPosts } from "@/lib/publishing/service";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { db, orgId } = await getOrgContextOrRedirect();
-  const report = await buildReport(db, orgId, "linear");
-  const posts = await listPosts(db, orgId);
-  const accounts = await db.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.orgId, orgId));
-  const scheduled = posts.filter(p => p.status === "scheduled");
+  const ctx = await getOrgContextOrRedirect();
+  const { report, posts, accounts } = await ctx.withOrg(async (db) => ({
+    report: await buildReport(db, ctx.orgId, "linear"),
+    posts: await listPosts(db, ctx.orgId),
+    accounts: await db.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.orgId, ctx.orgId)),
+  }));
+  const scheduled = posts.filter((p) => p.status === "scheduled");
   const attributedRevenue = report.channels.reduce((s, c) => s + c.creditedValueCents, 0);
 
   const tiles = [
@@ -34,7 +36,7 @@ export default async function DashboardPage() {
       </div>
       <h2 className="mb-2 mt-8 text-lg font-semibold">Scheduled posts ({scheduled.length})</h2>
       <ul className="space-y-1 text-sm">
-        {scheduled.map(p => <li key={p.id} className="rounded border bg-white px-3 py-2">{p.content} — {p.scheduledFor}</li>)}
+        {scheduled.map((p) => <li key={p.id} className="rounded border bg-white px-3 py-2">{p.content} — {p.scheduledFor}</li>)}
         {scheduled.length === 0 && <li className="text-neutral-500">Nothing scheduled.</li>}
       </ul>
     </div>
