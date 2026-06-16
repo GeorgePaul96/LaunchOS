@@ -77,10 +77,11 @@ export async function seedOrg(db: TestDB) {
   await db.insert(schema.profiles).values({
     id: profileId, publicId: publicId("prof"), orgId, name: "Acme Brand",
   });
+  // Platforms are a global catalog; idempotent so multiple seedOrg calls (multi-org tests) work.
   await db.insert(schema.platforms).values([
     { key: "twitter", displayName: "X", category: "social" },
     { key: "linkedin", displayName: "LinkedIn", category: "social" },
-  ]);
+  ]).onConflictDoNothing();
   return { orgId, profileId };
 }
 
