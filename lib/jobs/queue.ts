@@ -36,7 +36,7 @@ export async function claimJobs(db: DB, batch = 10): Promise<ClaimedJob[]> {
     UPDATE jobs SET status='running', locked_at=now(), attempts=attempts+1, updated_at=now()
     WHERE id IN (
       SELECT id FROM jobs
-      WHERE status='pending' AND run_after <= now()
+      WHERE status='pending' AND run_after <= statement_timestamp()
       ORDER BY run_after
       LIMIT ${batch}
       FOR UPDATE SKIP LOCKED
