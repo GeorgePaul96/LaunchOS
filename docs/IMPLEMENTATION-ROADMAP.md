@@ -60,7 +60,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 | Phase | Theme | Outcome | Systems |
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
-| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ⬜ durable jobs, AI gateway, billing, OpenAPI→SDK→MCP, observability |
+| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ✅ durable jobs; ⬜ AI gateway, billing, OpenAPI→SDK→MCP, observability |
 | **P2** ⬜ | MVP completion | Spec §11 fully met | Real wrapped provider (5 channels), Viral Generator, Campaign Brain, inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
@@ -109,7 +109,7 @@ against.
   with a crafted query; all existing tests pass against Postgres; `attribution_results.credit`
   moves back to `numeric` fractions.
 
-### 4.2 ⬜ Durable job/workflow runtime
+### 4.2 ✅ Durable job/workflow runtime (Postgres-backed queue)
 - **Scope:** replace the in-process poller with **Temporal** (or BullMQ + leader-elected
   scheduler). Workflows: publish-scheduler (exact-time), inbox-sync, analytics-sync,
   webhook-dispatch (HMAC + retry + DLQ), broadcast-sender, sequence-stepper, competitor-poller,

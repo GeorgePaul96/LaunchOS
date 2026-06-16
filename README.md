@@ -20,10 +20,20 @@ code). Tenant isolation is enforced by Postgres **Row-Level Security** (`withOrg
 `app.current_org` under a non-privileged role); workers use the service-role connection.
 
 > **PGlite dev note:** PGlite is single-connection and allows only one process per data dir.
-> Run a single `npm run dev`. The in-process publish **scheduler runs only against managed
-> Postgres** (`DATABASE_URL=postgres://…`), not PGlite — so on PGlite, scheduled posts are not
-> auto-published in dev (the publish path is covered by the test suite). Everything else works
-> on PGlite.
+> Run a single `npm run dev`. The background job worker runs only against managed Postgres; on
+> PGlite, jobs drain **inline** in the POST /posts request, so publishing works in dev too.
+
+### Background worker
+
+Publishing runs through a durable job queue (the `jobs` table). On **managed Postgres**, run a
+worker to drain it (the Next server also runs an in-process worker):
+
+```bash
+npm run worker     # requires DATABASE_URL=postgres://…
+```
+
+On **PGlite dev**, there is no separate worker (single-connection); the POST /posts route
+drains the just-enqueued `publish_post` job inline, so publishing works in dev.
 
 ## Test
 
@@ -35,7 +45,8 @@ npm test
 
 UI → `app/api/v1/*` route handlers → `lib/*` services → Drizzle/SQLite.
 - `lib/channel/*` — `ChannelProvider` seam (`MockChannelProvider` now; wrap/native later).
-- `lib/publishing/*` — post/target lifecycle + in-process scheduler (Temporal seam).
+- `lib/jobs/*` — durable Postgres-backed job queue (enqueue / claim via SKIP LOCKED / retry / backoff / DLQ).
+- `lib/publishing/*` — post/target lifecycle; publishing runs as a `publish_post` job.
 - `lib/attribution/*` — identity stitching, ingest, first/last/linear models, channel report.
 - `lib/journey/*` — per-contact timeline.
 

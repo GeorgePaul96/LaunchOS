@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { identify } from "@/lib/attribution/identity";
 import { recordTouchpoint, recordConversion } from "@/lib/attribution/ingest";
 import { buildReport } from "@/lib/attribution/report";
+import { runWorkerOnce } from "@/lib/jobs/worker";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -35,5 +36,21 @@ describe("flywheel end-to-end", () => {
     const report = await buildReport(db as any, orgId, "linear");
     expect(report.totalConversionValueCents).toBe(5000);
     expect(report.channels.find(c => c.channel === "organic_social")?.creditedValueCents).toBe(5000);
+  });
+
+  it("createPost enqueues a publish_post job that the worker publishes", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const acc = await seedAccount(db, orgId, profileId, "twitter");
+    const post = await createPost(db as any, orgId, { profileId, content: "Queued!", accountIds: [acc] });
+
+    // a publish_post job exists and the post is not yet published
+    const jobsBefore = await db.select().from(schema.jobs);
+    expect(jobsBefore.some((j) => j.type === "publish_post")).toBe(true);
+
+    // worker drains it → targets published, post rolled up
+    const { processed } = await runWorkerOnce(db as any, 10);
+    expect(processed).toBeGreaterThanOrEqual(1);
+    const [updated] = await db.select().from(schema.posts).where(eq(schema.posts.id, post.id));
+    expect(updated.status).toBe("published");
   });
 });
