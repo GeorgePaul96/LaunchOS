@@ -13,6 +13,7 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").notNull().unique(),
   plan: text("plan").notNull().default("free"),
   brandSettings: text("brand_settings").notNull().default("{}"),
+  featureFlags: text("feature_flags").notNull().default("{}"),
   createdAt: text("created_at").notNull().$defaultFn(now),
   updatedAt: text("updated_at").notNull().$defaultFn(now),
 });
@@ -236,4 +237,20 @@ export const jobs = pgTable("jobs", {
   lastError: text("last_error"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
+// AI gateway cost/audit ledger (every model call writes one row).
+export const aiJobs = pgTable("ai_jobs", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  orgId: text("org_id").notNull().references(() => organizations.id),
+  feature: text("feature").notNull(),
+  task: text("task").notNull(),
+  model: text("model").notNull(),
+  status: text("status").notNull().default("succeeded"),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  costCents: integer("cost_cents").notNull().default(0),
+  latencyMs: integer("latency_ms"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
