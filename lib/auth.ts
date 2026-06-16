@@ -1,4 +1,4 @@
-import { scrypt, randomBytes, timingSafeEqual, createHmac } from "node:crypto";
+import { scrypt, randomBytes, timingSafeEqual, createHmac, createHash } from "node:crypto";
 import { promisify } from "node:util";
 
 const scryptAsync = promisify(scrypt);
@@ -41,4 +41,13 @@ export function verifySession(token: string, secret: string): SessionPayload | n
 export const SESSION_COOKIE = "launchos_session";
 export function sessionSecret(): string {
   return process.env.SESSION_SECRET ?? "dev-only-secret-change-me";
+}
+
+export function hashApiKey(secret: string): string {
+  return createHash("sha256").update(secret).digest("hex");
+}
+
+export function generateApiKey(): { secret: string; hash: string; prefix: string } {
+  const secret = "sk_" + randomBytes(32).toString("hex");
+  return { secret, hash: hashApiKey(secret), prefix: secret.slice(0, 8) };
 }

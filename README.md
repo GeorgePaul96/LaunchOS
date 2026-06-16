@@ -35,6 +35,28 @@ npm run worker     # requires DATABASE_URL=postgres://…
 On **PGlite dev**, there is no separate worker (single-connection); the POST /posts route
 drains the just-enqueued `publish_post` job inline, so publishing works in dev.
 
+### Programmatic access (SDK + MCP)
+
+Mint a key, then call the API:
+
+```bash
+npm run apikey                 # prints an sk_… key once
+curl -H "Authorization: Bearer sk_…" localhost:3000/api/v1/accounts
+```
+
+The OpenAPI 3.1 contract is at `GET /api/v1/openapi.json`; the typed client is `lib/sdk`.
+
+**MCP (Claude Desktop / Cursor):** run `npm run dev`, then point your MCP client at:
+
+```json
+{ "mcpServers": { "launchos": {
+  "command": "npm", "args": ["run", "mcp"],
+  "env": { "LAUNCHOS_API_KEY": "sk_…", "LAUNCHOS_BASE_URL": "http://localhost:3000" }
+} } }
+```
+
+Tools: `list_accounts`, `list_posts`, `create_post`, `attribution_report`, `contact_journey`, `record_touchpoint`, `record_conversion`.
+
 ## Test
 
 ```bash
@@ -47,6 +69,7 @@ UI → `app/api/v1/*` route handlers → `lib/*` services → Drizzle/SQLite.
 - `lib/channel/*` — `ChannelProvider` seam (`MockChannelProvider` now; wrap/native later).
 - `lib/jobs/*` — durable Postgres-backed job queue (enqueue / claim via SKIP LOCKED / retry / backoff / DLQ).
 - `lib/ai/*` — AI gateway: provider seam (Mock dev/test, Anthropic prod via `ANTHROPIC_API_KEY`), task router, `ai_jobs` cost ledger, per-org budget caps.
+- `lib/sdk/*` + `mcp/*` — typed API client + stdio MCP server (Claude/Cursor); `/api/v1/openapi.json` is the contract. API-key auth via `Authorization: Bearer sk_…`.
 - `lib/publishing/*` — post/target lifecycle; publishing runs as a `publish_post` job.
 - `lib/attribution/*` — identity stitching, ingest, first/last/linear models, channel report.
 - `lib/journey/*` — per-contact timeline.
