@@ -60,7 +60,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 | Phase | Theme | Outcome | Systems |
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
-| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ✅ durable jobs; ✅ AI gateway; ⬜ billing, OpenAPI→SDK→MCP, observability |
+| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ✅ durable jobs; ✅ AI gateway; ✅ OpenAPI/SDK/MCP; ⬜ billing, observability |
 | **P2** ⬜ | MVP completion | Spec §11 fully met | Real wrapped provider (5 channels), Viral Generator, Campaign Brain, inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
@@ -139,7 +139,7 @@ against.
 - **Acceptance:** connecting account #3 shows the correct graduated price; AI usage accrues
   credits; overage metered; billing preview matches tiers.
 
-### 4.5 ⬜ OpenAPI 3.1 → SDKs + MCP + typed tool registry
+### 4.5 ✅ OpenAPI 3.1 → SDK + MCP (TS; Python/others later)
 - **Scope:** author OpenAPI 3.1 as the single source of truth for the `/v1` surface; generate
   Node + Python SDKs (Stainless/Speakeasy-style); generate the hosted **MCP server**
   (`mcp.launchos.com/mcp`, OAuth or Bearer); the same definitions produce the typed tool
