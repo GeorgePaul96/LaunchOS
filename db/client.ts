@@ -16,16 +16,16 @@ const isPg = url.startsWith("postgres://") || url.startsWith("postgresql://");
 
 const MIGRATIONS_FOLDER = "db/migrations";
 
-function makeDb() {
+function makeDb(): { db: DB; kind: "pg" | "pglite" } {
   if (isPg) {
     // production: managed Postgres
     const pool = new Pool({ connectionString: url });
-    return { db: pgDrizzle(pool, { schema }) as unknown as DB, kind: "pg" as const };
+    return { db: pgDrizzle(pool, { schema }) as unknown as DB, kind: "pg" };
   }
   // dev/test: PGlite (in-process). url forms: "" (default dir), "pglite://<dir>", or a path.
   const dir = url.startsWith("pglite://") ? url.slice("pglite://".length) : (url || ".pgdata");
   const client = new PGlite(dir);
-  return { db: pgliteDrizzle(client, { schema }) as unknown as DB, kind: "pglite" as const };
+  return { db: pgliteDrizzle(client, { schema }) as unknown as DB, kind: "pglite" };
 }
 
 const resolved = makeDb();
