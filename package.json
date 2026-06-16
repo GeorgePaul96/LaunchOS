@@ -10,6 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
+    "worker": "tsx bin/worker.ts",
     "setup": "npm run db:migrate && npm run db:seed",
     "test": "vitest run",
     "test:watch": "vitest"

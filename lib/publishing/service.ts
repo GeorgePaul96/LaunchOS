@@ -5,6 +5,8 @@ import { uuid, publicId } from "@/lib/ids";
 import { ApiError } from "@/lib/errors";
 import { assertSameOrg } from "@/lib/org-context";
 import type { ChannelProvider } from "@/lib/channel/provider";
+import { MockChannelProvider } from "@/lib/channel/mock";
+import { enqueue } from "@/lib/jobs/queue";
 
 export interface CreatePostInput {
   profileId: string;
@@ -54,6 +56,7 @@ export async function createPost(db: DB, orgId: string, input: CreatePostInput) 
       status: "pending",
     });
   }
+  await enqueue(db, { type: "publish_post", orgId, payload: { postId } });
   return post;
 }
 
@@ -119,4 +122,15 @@ export async function listPosts(db: DB, orgId: string) {
     result.push({ ...p, targets });
   }
   return result;
+}
+
+// Publishes all still-pending targets of a post (the publish_post job handler). Idempotent:
+// only touches pending targets, so a retry after a partial success won't double-publish.
+export async function publishPost(db: DB, postId: string, provider: ChannelProvider = new MockChannelProvider()) {
+  const targets = await db.select().from(schema.postTargets)
+    .where(and(eq(schema.postTargets.postId, postId), eq(schema.postTargets.status, "pending")));
+  for (const t of targets) {
+    await publishTarget(db, t.id, provider);
+  }
+  await rollupPostStatus(db, postId);
 }

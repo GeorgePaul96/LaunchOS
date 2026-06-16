@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
-import { schema } from "@/db/client";
+import { schema, driverKind } from "@/db/client";
 import { requireContext, ok } from "@/lib/request";
 import { toProblemResponse, ApiError } from "@/lib/errors";
 import { createPost, listPosts } from "@/lib/publishing/service";
+import { runWorkerOnce } from "@/lib/jobs/worker";
 
 export async function GET() {
   try {
@@ -36,6 +37,11 @@ export async function POST(req: Request) {
       const out = { post: { id: post.publicId, status: post.status } };
       if (idemKey) {
         await db.insert(schema.idempotencyKeys).values({ key: idemKey, orgId: ctx.orgId, responseJson: JSON.stringify(out) });
+      }
+      // PGlite dev: no background worker (single connection) → drain the just-enqueued job
+      // inline within this same request/connection. Managed Postgres uses the worker process.
+      if (driverKind === "pglite") {
+        await runWorkerOnce(db);
       }
       return out;
     });
