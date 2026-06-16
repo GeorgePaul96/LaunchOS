@@ -43,6 +43,10 @@ export const apiKeys = pgTable("api_keys", {
   keyHash: text("key_hash").notNull().unique(),
   keyPrefix: text("key_prefix").notNull(),
   scopes: text("scopes").notNull().default("[]"),
+  createdBy: text("created_by").references(() => users.id),
+  lastUsedAt: text("last_used_at"),
+  expiresAt: text("expires_at"),
+  revokedAt: text("revoked_at"),
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
