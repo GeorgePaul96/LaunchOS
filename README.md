@@ -46,6 +46,7 @@ npm test
 UI → `app/api/v1/*` route handlers → `lib/*` services → Drizzle/SQLite.
 - `lib/channel/*` — `ChannelProvider` seam (`MockChannelProvider` now; wrap/native later).
 - `lib/jobs/*` — durable Postgres-backed job queue (enqueue / claim via SKIP LOCKED / retry / backoff / DLQ).
+- `lib/ai/*` — AI gateway: provider seam (Mock dev/test, Anthropic prod via `ANTHROPIC_API_KEY`), task router, `ai_jobs` cost ledger, per-org budget caps.
 - `lib/publishing/*` — post/target lifecycle; publishing runs as a `publish_post` job.
 - `lib/attribution/*` — identity stitching, ingest, first/last/linear models, channel report.
 - `lib/journey/*` — per-contact timeline.
@@ -56,6 +57,10 @@ dev/test and node-postgres (`pg`) in production, selected by `DATABASE_URL`. The
 uuid/timestamptz/jsonb fidelity is a deferred follow-up). Multi-tenant isolation is real
 Postgres RLS (enable + force + per-table `org_isolation` policy), with `org_id` query filters
 kept as defense-in-depth.
+
+Set `ANTHROPIC_API_KEY` to use real Claude calls (model `claude-opus-4-8`); without it the AI
+gateway runs on a deterministic mock. Per-org monthly AI spend is capped via
+`AI_BUDGET_CENTS_DEFAULT` (env) or `organizations.feature_flags.ai_budget_cents`.
 
 ## What this slice deliberately omits
 

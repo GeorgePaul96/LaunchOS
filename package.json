@@ -16,6 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@electric-sql/pglite": "^0.5.2",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.9",
