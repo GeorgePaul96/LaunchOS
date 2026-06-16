@@ -2,7 +2,7 @@
 // service code + tests are unchanged. Native-type fidelity (uuid/timestamptz/jsonb/numeric)
 // is deferred — see docs/superpowers/specs/2026-06-15-postgres-rls-migration-design.md §2.
 // Driver: PGlite (dev/test) / node-postgres (prod). Canonical source: launchos_schema.sql.
-import { pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, jsonb, timestamp, bigserial } from "drizzle-orm/pg-core";
 
 const now = () => new Date().toISOString();
 
@@ -220,4 +220,20 @@ export const idempotencyKeys = pgTable("idempotency_keys", {
   orgId: text("org_id").notNull(),
   responseJson: text("response_json").notNull(),
   createdAt: text("created_at").notNull().$defaultFn(now),
+});
+
+// Durable job queue (new infra → native jsonb/timestamptz types).
+export const jobs = pgTable("jobs", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  orgId: text("org_id"),
+  type: text("type").notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  runAfter: timestamp("run_after", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  lockedAt: timestamp("locked_at", { withTimezone: true, mode: "string" }),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
