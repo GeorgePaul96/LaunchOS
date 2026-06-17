@@ -150,6 +150,35 @@ describe("campaign service: plan", () => {
     expect(second.assets.every((a) => !oldIds.has(a.id))).toBe(true);
   });
 
+  it("re-plan keeps materialized assets (those with a postId) and replaces the rest", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const li = await seedAccount(db, orgId, profileId, "linkedin");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw, li] });
+
+    const first = await planCampaign(db as any, orgId, c.id, { provider: planProvider });
+    // Materialize one asset by creating a post and linking it.
+    const kept = first.assets[0];
+    const post = (await db.insert(schema.posts).values({
+      id: "post_fixed_1",
+      publicId: "pub_fixed_1",
+      orgId,
+      profileId,
+      content: "test",
+    }).returning())[0];
+    await db.update(schema.campaignAssets).set({ postId: post.id }).where(eq(schema.campaignAssets.id, kept.id));
+
+    const second = await planCampaign(db as any, orgId, c.id, { provider: planProvider });
+    const allIds = (await db.select().from(schema.campaignAssets).where(eq(schema.campaignAssets.campaignId, c.id))).map((a) => a.id);
+    // The materialized asset survived the re-plan.
+    expect(allIds).toContain(kept.id);
+    // The other original (un-materialized) asset was replaced.
+    const otherOriginal = first.assets[1];
+    expect(allIds).not.toContain(otherOriginal.id);
+    // New plan's freshly-inserted assets are present too.
+    expect(second.assets.length).toBeGreaterThan(0);
+  });
+
   it("400s planning a non-planning campaign", async () => {
     const { orgId, profileId } = await seedOrg(db);
     const tw = await seedAccount(db, orgId, profileId, "twitter");
