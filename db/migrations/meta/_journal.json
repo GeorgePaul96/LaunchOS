@@ -57,6 +57,20 @@
       "when": 1781674386646,
       "tag": "0007_org_rls_users_revoke",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781674741071,
+      "tag": "0008_marvelous_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781674743091,
+      "tag": "0009_audit_log_rls",
+      "breakpoints": true
     }
   ]
 }

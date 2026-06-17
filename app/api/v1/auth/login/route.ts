@@ -3,6 +3,7 @@ import { db, schema } from "@/db/client";
 import { verifyPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
+import { recordAudit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     const [membership] = await db.select().from(schema.memberships).where(eq(schema.memberships.userId, user.id));
     if (!membership) throw new ApiError(403, "forbidden", "No org membership");
     const token = signSession({ userId: user.id, orgId: membership.orgId }, sessionSecret());
+    await recordAudit(db, { orgId: membership.orgId, actorType: "user", actorId: user.id, action: "auth.login" });
     const res = ok({ user: { id: user.id, email: user.email } });
     res.headers.append("set-cookie", sessionCookie(token));
     return res;

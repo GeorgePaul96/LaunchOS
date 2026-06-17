@@ -244,6 +244,19 @@ export const jobs = pgTable("jobs", {
 });
 
 // AI gateway cost/audit ledger (every model call writes one row).
+// Append-only audit trail of mutating actions.
+export const auditLog = pgTable("audit_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  orgId: text("org_id"),
+  actorType: text("actor_type").notNull(),
+  actorId: text("actor_id"),
+  action: text("action").notNull(),
+  targetType: text("target_type"),
+  targetId: text("target_id"),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
 export const aiJobs = pgTable("ai_jobs", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   orgId: text("org_id").notNull().references(() => organizations.id),

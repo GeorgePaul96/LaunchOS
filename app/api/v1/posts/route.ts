@@ -4,6 +4,7 @@ import { requireContext, ok } from "@/lib/request";
 import { toProblemResponse, ApiError } from "@/lib/errors";
 import { createPost, listPosts } from "@/lib/publishing/service";
 import { runWorkerOnce } from "@/lib/jobs/worker";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
       if (idemKey) {
         await db.insert(schema.idempotencyKeys).values({ key: idemKey, orgId: ctx.orgId, responseJson: JSON.stringify(out) });
       }
+      await recordAudit(db, { orgId: ctx.orgId, actorType: "user", actorId: ctx.userId || undefined, action: "post.create", targetType: "post", targetId: post.publicId });
       // PGlite dev: no background worker (single connection) → drain the just-enqueued job
       // inline within this same request/connection. Managed Postgres uses the worker process.
       if (driverKind === "pglite") {

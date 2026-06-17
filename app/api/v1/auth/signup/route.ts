@@ -4,6 +4,7 @@ import { uuid, publicId } from "@/lib/ids";
 import { hashPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
+import { recordAudit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     await db.insert(schema.memberships).values({ id: uuid(), orgId, userId, role: "owner", status: "active" });
     await db.insert(schema.profiles).values({ id: profileId, publicId: publicId("prof"), orgId, name: "Default" });
 
+    await recordAudit(db, { orgId, actorType: "user", actorId: userId, action: "auth.signup" });
     const token = signSession({ userId, orgId }, sessionSecret());
     const res = ok({ user: { id: userId, email }, org: { id: orgId } }, 201);
     res.headers.append("set-cookie", sessionCookie(token));
