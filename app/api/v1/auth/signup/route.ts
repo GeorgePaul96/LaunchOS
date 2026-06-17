@@ -5,9 +5,14 @@ import { hashPassword, signSession, sessionSecret, sessionCookie } from "@/lib/a
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
 import { recordAudit } from "@/lib/audit";
+import { headers } from "next/headers";
+import { assertRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
   try {
+    const h = await headers();
+    const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
+    assertRateLimit(`auth:${ip}`, 10, 60_000);
     const { email, password, name } = await req.json();
     if (!email || !password) throw new ApiError(400, "invalid_request", "email and password required");
     const existing = await db.select().from(schema.users).where(eq(schema.users.email, email));

@@ -4,9 +4,14 @@ import { verifyPassword, signSession, sessionSecret, sessionCookie } from "@/lib
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
 import { recordAudit } from "@/lib/audit";
+import { headers } from "next/headers";
+import { assertRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
   try {
+    const h = await headers();
+    const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
+    assertRateLimit(`auth:${ip}`, 10, 60_000);
     const { email, password } = await req.json();
     const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email ?? ""));
     if (!user || !user.passwordHash || !(await verifyPassword(password ?? "", user.passwordHash))) {

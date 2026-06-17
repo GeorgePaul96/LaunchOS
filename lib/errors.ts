@@ -14,6 +14,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     public detail: string,
+    public headers?: Record<string, string>,
   ) {
     super(detail);
     this.name = "ApiError";
@@ -39,6 +40,6 @@ export function toProblemResponse(err: unknown): Response {
   const body = problem({ status: e.status, code: e.code, detail: e.detail });
   return new Response(JSON.stringify(body), {
     status: e.status,
-    headers: { "content-type": "application/problem+json" },
+    headers: { "content-type": "application/problem+json", ...(e.headers ?? {}) },
   });
 }
