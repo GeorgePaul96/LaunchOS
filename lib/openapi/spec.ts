@@ -52,5 +52,17 @@ export const openapiSpec = {
     "/attribution/report": { get: { summary: "Attribution report", parameters: [queryParam("model")], responses: resp() } },
     "/journeys/contacts/{cid}/timeline": { get: { summary: "Contact journey", parameters: [pathParam("cid")], responses: resp() } },
     "/api-keys": { post: { summary: "Mint an API key", requestBody: jsonBody({ name: { type: "string" }, scopes: { type: "array", items: { type: "string" } } }, ["name"]), responses: resp(201) } },
+    "/content/generate": {
+      post: {
+        summary: "Generate scored content variants",
+        requestBody: jsonBody({
+          profileId: { type: "string" }, intent: { type: "string" }, prompt: { type: "string" },
+          sourceRef: { type: "string" }, count: { type: "integer" },
+        }, ["profileId", "intent", "prompt"]),
+        responses: resp(201),
+      },
+    },
+    "/content/generations": { get: { summary: "List content generations", responses: resp() } },
+    "/content/variants/{id}/choose": { post: { summary: "Mark a variant chosen", parameters: [pathParam("id")], responses: resp() } },
   },
 } as const;
