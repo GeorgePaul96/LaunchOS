@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { makeTestDb, seedOrg, seedAccount, type TestDB } from "./helpers";
-import { createCampaign, listCampaigns, getCampaign } from "@/lib/campaign/service";
+import { createCampaign, listCampaigns, getCampaign, channelMixOf } from "@/lib/campaign/service";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -47,5 +47,26 @@ describe("campaign service: create/list/get", () => {
   it("404s getting an unknown campaign", async () => {
     const { orgId } = await seedOrg(db);
     await expect(getCampaign(db as any, orgId, "missing")).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("channelMixOf", () => {
+  it("aggregates budget per platform with share percentages", () => {
+    const mix = channelMixOf([
+      { platform: "twitter", budgetCents: 300 },
+      { platform: "twitter", budgetCents: 100 },
+      { platform: "linkedin", budgetCents: 600 },
+    ]);
+    const tw = mix.find((m) => m.platform === "twitter")!;
+    const li = mix.find((m) => m.platform === "linkedin")!;
+    expect(tw.budgetCents).toBe(400);
+    expect(tw.share).toBe(40);
+    expect(li.budgetCents).toBe(600);
+    expect(li.share).toBe(60);
+  });
+
+  it("returns share 0 for all-zero budgets (no divide-by-zero)", () => {
+    const mix = channelMixOf([{ platform: "twitter", budgetCents: 0 }]);
+    expect(mix[0].share).toBe(0);
   });
 });
