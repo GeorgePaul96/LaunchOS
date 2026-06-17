@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { makeTestDb, seedOrg, seedAccount, type TestDB } from "./helpers";
-import { createCampaign, listCampaigns, getCampaign, channelMixOf, planCampaign, approveCampaign } from "@/lib/campaign/service";
+import { makeTestDb, seedOrg, seedAccount, scopeToOrg, type TestDB } from "./helpers";
+import { createCampaign, listCampaigns, getCampaign, channelMixOf, planCampaign, approveCampaign, campaignResults } from "@/lib/campaign/service";
 import type { AIProvider } from "@/lib/ai/provider";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
+import { uuid } from "@/lib/ids";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -241,5 +242,43 @@ describe("campaign service: approve", () => {
     } };
     await planCampaign(db as any, orgId, c.id, { provider: unmatched });
     await expect(approveCampaign(db as any, orgId, c.id)).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("campaign service: results + isolation", () => {
+  it("returns a campaign-scoped attribution report", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw] });
+    const identityId = uuid();
+    await db.insert(schema.identities).values({ id: identityId, orgId });
+    await db.insert(schema.touchpoints).values({ orgId, identityId, channel: "twitter", campaignId: c.id, occurredAt: "2026-01-01T00:00:00.000Z" });
+    await db.insert(schema.conversions).values({ orgId, identityId, eventName: "signup", valueCents: 500, occurredAt: "2026-01-02T00:00:00.000Z" });
+
+    const report = await campaignResults(db as any, orgId, c.id, "linear");
+    expect(report.channels.map((ch) => ch.channel)).toEqual(["twitter"]);
+    // read-only: no attribution_results persisted
+    expect(await db.select().from(schema.attributionResults)).toHaveLength(0);
+  });
+
+  it("404s results for an unknown campaign", async () => {
+    const { orgId } = await seedOrg(db);
+    await expect(campaignResults(db as any, orgId, "missing", "linear")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("isolates campaigns + assets across orgs under RLS", async () => {
+    const a = await seedOrg(db);
+    const b = await seedOrg(db);
+    const accA = await seedAccount(db, a.orgId, a.profileId, "twitter");
+    const created = await scopeToOrg(db, a.orgId, (tx) =>
+      createCampaign(tx, a.orgId, { profileId: a.profileId, name: "secret", objective: "o", accountIds: [accA] }),
+    );
+    await scopeToOrg(db, b.orgId, async (tx) => {
+      expect(await listCampaigns(tx, b.orgId)).toHaveLength(0);
+      await expect(getCampaign(tx, b.orgId, created.id)).rejects.toMatchObject({ status: 404 });
+    });
+    await scopeToOrg(db, a.orgId, async (tx) => {
+      expect(await listCampaigns(tx, a.orgId)).toHaveLength(1);
+    });
   });
 });

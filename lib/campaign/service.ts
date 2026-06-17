@@ -3,6 +3,8 @@ import type { DB } from "@/db/client";
 import { schema } from "@/db/client";
 import { ApiError } from "@/lib/errors";
 import { uuid, publicId } from "@/lib/ids";
+import { buildReport } from "@/lib/attribution/report";
+import type { AttributionModel } from "@/lib/attribution/models";
 import { run as runAI } from "@/lib/ai/gateway";
 import type { AIProvider } from "@/lib/ai/provider";
 import { buildPlanPrompt, type BrandVoice, type PlanChannel } from "./prompt";
@@ -175,4 +177,11 @@ export async function approveCampaign(db: DB, orgId: string, campaignId: string)
   const [updatedCampaign] = await db.update(schema.campaigns).set({ status: "active" })
     .where(and(eq(schema.campaigns.id, campaignId), eq(schema.campaigns.orgId, orgId))).returning();
   return { campaign: updatedCampaign, posts };
+}
+
+export async function campaignResults(db: DB, orgId: string, campaignId: string, model: AttributionModel) {
+  const [campaign] = await db.select().from(schema.campaigns)
+    .where(and(eq(schema.campaigns.id, campaignId), eq(schema.campaigns.orgId, orgId)));
+  if (!campaign) throw new ApiError(404, "campaign_not_found", `No campaign ${campaignId}`);
+  return buildReport(db, orgId, model, { campaignId, persist: false });
 }
