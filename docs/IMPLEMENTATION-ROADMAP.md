@@ -60,7 +60,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 | Phase | Theme | Outcome | Systems |
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
-| **P1** 🟡 | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS migration; ✅ durable jobs; ✅ AI gateway; ✅ OpenAPI/SDK/MCP; ⬜ billing, observability |
+| **P1** ✅ | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS; ✅ durable jobs; ✅ AI gateway; ✅ OpenAPI/SDK/MCP; ✅ observability/security (logging, request-id, audit, rate-limit; metrics/governor deferred). Billing deferred (low value for personal use). |
 | **P2** ⬜ | MVP completion | Spec §11 fully met | Real wrapped provider (5 channels), Viral Generator, Campaign Brain, inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
@@ -147,7 +147,7 @@ against.
 - **Acceptance:** `POST /posts` etc. callable from the generated Node SDK and from an MCP
   client (Claude/Cursor); docs render from the spec; one definition powers REST + SDK + MCP.
 
-### 4.6 ⬜ Observability & security baseline
+### 4.6 ✅ Observability & security baseline (logging/request-id/audit/rate-limit; metrics+governor deferred)
 - **Scope:** structured logging (no PII/secrets), request IDs end-to-end, metrics/traces,
   audit_log writes on every mutating action, edge rate limiting + per-platform token-bucket
   governor (Redis), envelope-encrypted `oauth_credentials` with `key_version` rotation, API
