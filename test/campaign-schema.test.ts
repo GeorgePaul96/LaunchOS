@@ -27,7 +27,7 @@ describe("campaign schema + RLS", () => {
     });
 
     await scopeToOrg(db, b.orgId, async (tx) => {
-      const seen = await tx.select().from(schema.campaignAssets).where(eq(schema.campaignAssets.orgId, a.orgId));
+      const seen = await tx.select().from(schema.campaignAssets);
       expect(seen).toHaveLength(0);
     });
     await scopeToOrg(db, a.orgId, async (tx) => {
