@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db/client";
-import { verifyPassword, signSession, sessionSecret, SESSION_COOKIE } from "@/lib/auth";
+import { verifyPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     if (!membership) throw new ApiError(403, "forbidden", "No org membership");
     const token = signSession({ userId: user.id, orgId: membership.orgId }, sessionSecret());
     const res = ok({ user: { id: user.id, email: user.email } });
-    res.headers.append("set-cookie", `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax`);
+    res.headers.append("set-cookie", sessionCookie(token));
     return res;
   } catch (e) { return toProblemResponse(e); }
 }

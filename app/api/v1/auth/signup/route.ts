@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { uuid, publicId } from "@/lib/ids";
-import { hashPassword, signSession, sessionSecret, SESSION_COOKIE } from "@/lib/auth";
+import { hashPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
     const token = signSession({ userId, orgId }, sessionSecret());
     const res = ok({ user: { id: userId, email }, org: { id: orgId } }, 201);
-    res.headers.append("set-cookie", `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax`);
+    res.headers.append("set-cookie", sessionCookie(token));
     return res;
   } catch (e) { return toProblemResponse(e); }
 }
