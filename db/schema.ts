@@ -93,6 +93,8 @@ export const campaigns = pgTable("campaigns", {
   goalTarget: integer("goal_target"),
   budgetCents: integer("budget_cents"),
   status: text("status").notNull().default("planning"),
+  aiJobId: bigint("ai_job_id", { mode: "number" }).references(() => aiJobs.id, { onDelete: "set null" }),
+  accountIds: text("account_ids").notNull().default("[]"),
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
 
@@ -294,5 +296,21 @@ export const contentVariants = pgTable("content_variants", {
   rationale: text("rationale").notNull().default(""),
   chosen: boolean("chosen").notNull().default(false),
   postedPostId: text("posted_post_id").references(() => posts.id, { onDelete: "set null" }),
+  createdAt: text("created_at").notNull().$defaultFn(now),
+});
+
+export const campaignAssets = pgTable("campaign_assets", {
+  id: text("id").primaryKey(),
+  publicId: text("public_id").notNull().unique(),
+  campaignId: text("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+  orgId: text("org_id").notNull().references(() => organizations.id),
+  accountId: text("account_id").references(() => socialAccounts.id, { onDelete: "set null" }),
+  platform: text("platform").notNull(),
+  dayOffset: integer("day_offset").notNull().default(0),
+  draftBody: text("draft_body").notNull().default(""),
+  rationale: text("rationale").notNull().default(""),
+  expectedOutcome: text("expected_outcome").notNull().default(""),
+  budgetCents: integer("budget_cents").notNull().default(0),
+  postId: text("post_id").references(() => posts.id, { onDelete: "set null" }),
   createdAt: text("created_at").notNull().$defaultFn(now),
 });
