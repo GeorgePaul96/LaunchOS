@@ -3,6 +3,8 @@ import { makeTestDb, seedOrg, type TestDB } from "./helpers";
 import { identify } from "@/lib/attribution/identity";
 import { recordTouchpoint, recordConversion } from "@/lib/attribution/ingest";
 import { buildReport } from "@/lib/attribution/report";
+import * as schema from "@/db/schema";
+import { uuid } from "@/lib/ids";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -47,5 +49,31 @@ describe("attribution report", () => {
     const channels = report.channels.map(c => c.channel);
     expect(channels).toContain("organic_social");
     expect(channels).not.toContain("email");
+  });
+});
+
+describe("campaign-scoped report", () => {
+  it("filters credit by campaign and does not clobber global results when persist=false", async () => {
+    const { orgId } = await seedOrg(db);
+    const campId = uuid();
+    await db.insert(schema.campaigns).values({
+      id: campId, publicId: "camp_x", orgId, profileId: (await db.select().from(schema.profiles))[0].id,
+      name: "C", objective: "o", status: "planning",
+    });
+    const identityId = uuid();
+    await db.insert(schema.identities).values({ id: identityId, orgId });
+    // One touchpoint tied to the campaign, one not.
+    await db.insert(schema.touchpoints).values([
+      { orgId, identityId, channel: "twitter", campaignId: campId, occurredAt: "2026-01-01T00:00:00.000Z" },
+      { orgId, identityId, channel: "email", occurredAt: "2026-01-02T00:00:00.000Z" },
+    ]);
+    await db.insert(schema.conversions).values({ orgId, identityId, eventName: "signup", valueCents: 1000, occurredAt: "2026-01-03T00:00:00.000Z" });
+
+    const scoped = await buildReport(db as any, orgId, "linear", { campaignId: campId, persist: false });
+    // Only the campaign touchpoint's channel earns credit.
+    expect(scoped.channels.map((c) => c.channel)).toEqual(["twitter"]);
+    // persist=false leaves no rows behind.
+    const rows = await db.select().from(schema.attributionResults);
+    expect(rows).toHaveLength(0);
   });
 });
