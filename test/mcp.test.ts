@@ -8,9 +8,17 @@ describe("mcp", () => {
   it("registers the curated tool set", () => {
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
-      "attribution_report", "contact_journey", "create_post", "list_accounts",
-      "list_posts", "record_conversion", "record_touchpoint",
+      "attribution_report", "contact_journey", "create_post", "generate_content",
+      "list_accounts", "list_posts", "record_conversion", "record_touchpoint",
     ]);
+  });
+
+  it("generate_content routes to the SDK content resource", async () => {
+    let got: unknown;
+    const stub = { content: { generate: async (a: unknown) => { got = a; return { generation: {}, variants: [] }; } } } as unknown as LaunchOSClient;
+    const tool = tools.find((t) => t.name === "generate_content")!;
+    await tool.run(stub, { profileId: "p", intent: "hook", prompt: "x" });
+    expect(got).toMatchObject({ profileId: "p", intent: "hook", prompt: "x" });
   });
 
   it("routes a tool call through the client", async () => {

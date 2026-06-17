@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { LaunchOSClient } from "@/lib/sdk/client";
-import type { AttributionModel } from "@/lib/sdk/types";
+import type { AttributionModel, ContentIntent } from "@/lib/sdk/types";
 
 export interface ToolDef {
   name: string;
@@ -29,4 +29,7 @@ export const tools: ToolDef[] = [
   { name: "record_conversion", description: "Record a conversion/revenue event against an identity.",
     schema: { identityId: z.string(), eventName: z.string(), valueCents: z.number().optional() },
     run: (c, a) => c.attribution.conversion({ identityId: a.identityId as string, eventName: a.eventName as string, valueCents: a.valueCents as number | undefined }) },
+  { name: "generate_content", description: "Generate scored social content variants for a profile (intents: hook, thread, reel_script, carousel, repurpose).",
+    schema: { profileId: z.string(), intent: z.enum(["hook", "thread", "reel_script", "carousel", "repurpose"]), prompt: z.string(), sourceRef: z.string().optional(), count: z.number().optional() },
+    run: (c, a) => c.content.generate({ profileId: a.profileId as string, intent: a.intent as ContentIntent, prompt: a.prompt as string, sourceRef: a.sourceRef as string | undefined, count: a.count as number | undefined }) },
 ];
