@@ -1,7 +1,7 @@
 import { LaunchOSApiError } from "./errors";
 import type {
   ClientOptions, CreatePostInput, IdentifyInput, TouchpointInput, ConversionInput,
-  CreateApiKeyInput, AttributionModel,
+  CreateApiKeyInput, AttributionModel, GenerateContentInput,
 } from "./types";
 
 export class LaunchOSClient {
@@ -52,5 +52,11 @@ export class LaunchOSClient {
 
   apiKeys = {
     create: (input: CreateApiKeyInput) => this.req<{ id: string; key: string; key_prefix: string }>("POST", "/api-keys", input),
+  };
+
+  content = {
+    generate: (input: GenerateContentInput) => this.req<{ generation: unknown; variants: unknown[] }>("POST", "/content/generate", input),
+    list: () => this.req<{ data: unknown[] }>("GET", "/content/generations"),
+    choose: (variantId: string) => this.req<{ variant: { id: string; chosen: boolean } }>("POST", `/content/variants/${encodeURIComponent(variantId)}/choose`),
   };
 }

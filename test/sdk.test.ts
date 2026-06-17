@@ -36,6 +36,23 @@ describe("LaunchOSClient", () => {
     expect(calls[0].url).toBe("http://x/api/v1/attribution/report?model=linear");
   });
 
+  it("posts content.generate with the body", async () => {
+    const { fn, calls } = stubFetch(201, { generation: { id: "gen_1" }, variants: [] });
+    const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_test", fetch: fn });
+    await client.content.generate({ profileId: "p", intent: "hook", prompt: "hi" });
+    expect(calls[0].url).toBe("http://x/api/v1/content/generate");
+    expect(calls[0].init.method).toBe("POST");
+    expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ profileId: "p", intent: "hook", prompt: "hi" });
+  });
+
+  it("posts content.choose to the variant path", async () => {
+    const { fn, calls } = stubFetch(200, { variant: { id: "var_1", chosen: true } });
+    const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_test", fetch: fn });
+    await client.content.choose("var_1");
+    expect(calls[0].url).toBe("http://x/api/v1/content/variants/var_1/choose");
+    expect(calls[0].init.method).toBe("POST");
+  });
+
   it("throws LaunchOSApiError on non-2xx problem+json", async () => {
     const { fn } = stubFetch(401, { code: "unauthorized", detail: "Invalid API key" });
     const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_bad", fetch: fn });
