@@ -34,6 +34,8 @@ export default function ContentStudioPage() {
       const json = await res.json();
       if (!res.ok) { setError(json.detail ?? "Generation failed"); return; }
       setVariants(json.variants ?? []);
+    } catch {
+      setError("Generation failed");
     } finally { setLoading(false); }
   }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { makeTestDb, seedOrg, type TestDB } from "./helpers";
+import { makeTestDb, seedOrg, scopeToOrg, type TestDB } from "./helpers";
 import * as schema from "@/db/schema";
 import { generateVariants, listGenerations, chooseVariant } from "@/lib/viral/service";
 import { MockAIProvider } from "@/lib/ai/mock";
@@ -95,5 +95,23 @@ describe("viral service", () => {
     const updated = await chooseVariant(db as any, orgId, variants[0].id);
     expect(updated.chosen).toBe(true);
     await expect(chooseVariant(db as any, orgId, "missing")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("isolates generations + variants across orgs under RLS", async () => {
+    const a = await seedOrg(db);
+    const b = await seedOrg(db);
+    // Generate under org A inside A's RLS scope.
+    const created = await scopeToOrg(db, a.orgId, (tx) =>
+      generateVariants(tx, a.orgId, { profileId: a.profileId, intent: "hook", prompt: "secret", provider: mock }),
+    );
+    // Org B, in its own scope, sees nothing of A's and cannot choose A's variant.
+    await scopeToOrg(db, b.orgId, async (tx) => {
+      expect(await listGenerations(tx, b.orgId)).toHaveLength(0);
+      await expect(chooseVariant(tx, b.orgId, created.variants[0].id)).rejects.toMatchObject({ status: 404 });
+    });
+    // Org A still sees its own.
+    await scopeToOrg(db, a.orgId, async (tx) => {
+      expect(await listGenerations(tx, a.orgId)).toHaveLength(1);
+    });
   });
 });

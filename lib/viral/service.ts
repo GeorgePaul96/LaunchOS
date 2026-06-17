@@ -64,7 +64,7 @@ export async function generateVariants(db: DB, orgId: string, input: GenerateInp
 export async function listGenerations(db: DB, orgId: string) {
   const gens = await db.select().from(schema.contentGenerations)
     .where(eq(schema.contentGenerations.orgId, orgId))
-    .orderBy(desc(schema.contentGenerations.createdAt));
+    .orderBy(desc(schema.contentGenerations.createdAt), desc(schema.contentGenerations.id));
   if (gens.length === 0) return [];
   const ids = gens.map((g) => g.id);
   const vars = await db.select().from(schema.contentVariants)
