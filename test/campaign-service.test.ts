@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { makeTestDb, seedOrg, seedAccount, type TestDB } from "./helpers";
-import { createCampaign, listCampaigns, getCampaign, channelMixOf } from "@/lib/campaign/service";
+import { createCampaign, listCampaigns, getCampaign, channelMixOf, planCampaign } from "@/lib/campaign/service";
+import type { AIProvider } from "@/lib/ai/provider";
+import { eq } from "drizzle-orm";
+import * as schema from "@/db/schema";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -68,5 +71,90 @@ describe("channelMixOf", () => {
   it("returns share 0 for all-zero budgets (no divide-by-zero)", () => {
     const mix = channelMixOf([{ platform: "twitter", budgetCents: 0 }]);
     expect(mix[0].share).toBe(0);
+  });
+});
+
+describe("campaign service: plan", () => {
+  // A deterministic provider returning two assets (one per seeded platform).
+  const planProvider: AIProvider = {
+    name: "plan-spy",
+    async complete(req) {
+      return {
+        text: JSON.stringify({
+          goalMetric: "signups", goalTarget: 300,
+          channelMix: [{ platform: "twitter", budgetCents: 6000, rationale: "reach" }],
+          assets: [
+            { platform: "twitter", dayOffset: 0, draftBody: "tw post", rationale: "hook", expectedOutcome: "clicks", budgetCents: 6000 },
+            { platform: "linkedin", dayOffset: 2, draftBody: "li post", rationale: "trust", expectedOutcome: "leads", budgetCents: 4000 },
+          ],
+        }),
+        model: req.model, usage: { inputTokens: 1, outputTokens: 1 },
+      };
+    },
+  };
+
+  it("plans, persists assets matched to accounts, and links an ai_jobs row", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    await db.update(schema.profiles).set({ brandVoice: JSON.stringify({ tone: "bold-xyz" }) }).where(eq(schema.profiles.id, profileId));
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const li = await seedAccount(db, orgId, profileId, "linkedin");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "signups", accountIds: [tw, li] });
+
+    const { campaign, assets } = await planCampaign(db as any, orgId, c.id, { provider: planProvider });
+    expect(assets).toHaveLength(2);
+    expect(campaign.aiJobId).not.toBeNull();
+    expect(campaign.goalMetric).toBe("signups");
+    const byPlatform = Object.fromEntries(assets.map((a) => [a.platform, a.accountId]));
+    expect(byPlatform.twitter).toBe(tw);
+    expect(byPlatform.linkedin).toBe(li);
+    const job = await db.select().from(schema.aiJobs).where(eq(schema.aiJobs.id, campaign.aiJobId!));
+    expect(job[0].feature).toBe("campaign_brain");
+  });
+
+  it("passes brand voice + channels into the model call", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    await db.update(schema.profiles).set({ brandVoice: JSON.stringify({ tone: "wry-zzz" }) }).where(eq(schema.profiles.id, profileId));
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw] });
+    let seenSystem = "";
+    const spy: AIProvider = {
+      name: "spy",
+      async complete(req) {
+        seenSystem = req.system ?? "";
+        return { text: JSON.stringify({ assets: [{ platform: "twitter", dayOffset: 0, draftBody: "b", rationale: "r", expectedOutcome: "o", budgetCents: 1 }] }), model: req.model, usage: { inputTokens: 1, outputTokens: 1 } };
+      },
+    };
+    await planCampaign(db as any, orgId, c.id, { provider: spy });
+    expect(seenSystem).toContain("wry-zzz");
+    expect(seenSystem).toContain("twitter");
+  });
+
+  it("502s when the model returns no assets", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw] });
+    const bad: AIProvider = { name: "bad", async complete(req) { return { text: JSON.stringify({ assets: [] }), model: req.model, usage: { inputTokens: 1, outputTokens: 1 } }; } };
+    await expect(planCampaign(db as any, orgId, c.id, { provider: bad })).rejects.toMatchObject({ status: 502, code: "ai_invalid_output" });
+  });
+
+  it("re-plan replaces un-materialized assets", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const li = await seedAccount(db, orgId, profileId, "linkedin");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw, li] });
+    const first = await planCampaign(db as any, orgId, c.id, { provider: planProvider });
+    const second = await planCampaign(db as any, orgId, c.id, { provider: planProvider });
+    expect(second.assets).toHaveLength(2);
+    // Old asset ids are gone (replaced).
+    const oldIds = new Set(first.assets.map((a) => a.id));
+    expect(second.assets.every((a) => !oldIds.has(a.id))).toBe(true);
+  });
+
+  it("400s planning a non-planning campaign", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const tw = await seedAccount(db, orgId, profileId, "twitter");
+    const c = await createCampaign(db as any, orgId, { profileId, name: "C", objective: "o", accountIds: [tw] });
+    await db.update(schema.campaigns).set({ status: "active" }).where(eq(schema.campaigns.id, c.id));
+    await expect(planCampaign(db as any, orgId, c.id, { provider: planProvider })).rejects.toMatchObject({ status: 400 });
   });
 });
