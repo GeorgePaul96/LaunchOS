@@ -61,7 +61,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
 | **P1** ✅ | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS; ✅ durable jobs; ✅ AI gateway; ✅ OpenAPI/SDK/MCP; ✅ observability/security (logging, request-id, audit, rate-limit; metrics/governor deferred). Billing deferred (low value for personal use). |
-| **P2** ⬜ | MVP completion | Spec §11 fully met | Real wrapped provider (5 channels), Viral Generator, Campaign Brain, inbox read+reply, attribution pixel |
+| **P2** 🔄 | MVP completion | Spec §11 fully met | ✅ Viral Generator; ⬜ real wrapped provider (5 channels), Campaign Brain, inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
 | **P5** ⬜ | Ecosystem & native | Remaining systems + margin/scale | Native platform adapters (top 5), Launch Assistant, Agent Marketplace, Affiliate Manager, Attribution v3, columnar analytics, enterprise (SSO/SCIM, residency), SOC 2 Type II |
@@ -174,16 +174,19 @@ against.
 - **Acceptance:** 5-min time-to-first-post; per-target failures isolated + retryable; tokens
   server-side only; metrics populate the dashboard.
 
-### 5.2 ⬜ Viral Content Generator v1
+### 5.2 ✅ Viral Content Generator v1
 - **Scope:** generate scored content variants (hooks/threads/reels/carousels/repurpose),
-  grounded in brand voice + org winners (RAG), variant scoring via LLM-judge; "use in composer."
-- **Data:** `content_generations`, `content_variants`, `ai_jobs`; closed-loop via
-  `content_variants.posted_post_id`.
-- **API:** `POST /content/generate`, `GET /content/variants/{id}/score`.
-- **Screens:** `/content-studio`; AI-assist inline in `/compose`.
+  grounded in brand voice, with per-variant predicted score + rationale via the AI gateway;
+  "use in composer." (RAG over org winners + closed-loop training deferred — see spec §8.)
+- **Data:** `content_generations`, `content_variants` (linked to the `ai_jobs` cost ledger);
+  `content_variants.posted_post_id` reserved for the closed loop (P4).
+- **API:** `POST /content/generate`, `GET /content/generations`,
+  `POST /content/variants/{id}/choose` — also in the OpenAPI spec, the SDK (`content.*`), and a
+  `generate_content` MCP tool.
+- **Screens:** `/content-studio`; chosen variant prefills `/compose?content=`.
 - **Depends on:** AI gateway.
-- **Acceptance:** variants grounded in this brand; scores carry rationale; chosen variant
-  links back for learning.
+- **Status:** done 2026-06-17. Spec: `docs/superpowers/specs/2026-06-17-viral-content-generator-design.md`;
+  plan: `docs/superpowers/plans/2026-06-17-viral-content-generator.md`. 117 tests green.
 
 ### 5.3 ⬜ AI Campaign Brain v1
 - **Scope:** goal → plan (calendar + channel mix + budget split + asset briefs + KPIs);

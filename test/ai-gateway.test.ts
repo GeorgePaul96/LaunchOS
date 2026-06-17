@@ -29,6 +29,7 @@ describe("ai gateway", () => {
     expect(rows[0].feature).toBe("viral_gen");
     expect(rows[0].costCents).toBeGreaterThan(0);
     expect(rows[0].inputTokens).toBeGreaterThan(0);
+    expect(result.jobId).toBe(rows[0].id);
   });
 
   it("parses JSON when a jsonSchema is provided", async () => {

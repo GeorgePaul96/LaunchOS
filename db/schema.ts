@@ -2,7 +2,7 @@
 // service code + tests are unchanged. Native-type fidelity (uuid/timestamptz/jsonb/numeric)
 // is deferred — see docs/superpowers/specs/2026-06-15-postgres-rls-migration-design.md §2.
 // Driver: PGlite (dev/test) / node-postgres (prod). Canonical source: launchos_schema.sql.
-import { pgTable, text, integer, boolean, jsonb, timestamp, bigserial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, jsonb, timestamp, bigserial, bigint } from "drizzle-orm/pg-core";
 
 const now = () => new Date().toISOString();
 
@@ -270,4 +270,29 @@ export const aiJobs = pgTable("ai_jobs", {
   latencyMs: integer("latency_ms"),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});
+
+export const contentGenerations = pgTable("content_generations", {
+  id: text("id").primaryKey(),
+  publicId: text("public_id").notNull().unique(),
+  orgId: text("org_id").notNull().references(() => organizations.id),
+  profileId: text("profile_id").notNull().references(() => profiles.id),
+  intent: text("intent").notNull(),
+  prompt: text("prompt").notNull(),
+  sourceRef: text("source_ref"),
+  aiJobId: bigint("ai_job_id", { mode: "number" }).references(() => aiJobs.id, { onDelete: "set null" }),
+  createdAt: text("created_at").notNull().$defaultFn(now),
+});
+
+export const contentVariants = pgTable("content_variants", {
+  id: text("id").primaryKey(),
+  publicId: text("public_id").notNull().unique(),
+  generationId: text("generation_id").notNull().references(() => contentGenerations.id, { onDelete: "cascade" }),
+  orgId: text("org_id").notNull().references(() => organizations.id),
+  body: text("body").notNull(),
+  predictedScore: integer("predicted_score").notNull().default(0),
+  rationale: text("rationale").notNull().default(""),
+  chosen: boolean("chosen").notNull().default(false),
+  postedPostId: text("posted_post_id").references(() => posts.id, { onDelete: "set null" }),
+  createdAt: text("created_at").notNull().$defaultFn(now),
 });

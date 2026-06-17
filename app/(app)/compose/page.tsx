@@ -1,12 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface Account { id: string; publicId: string; platform: string; username: string | null; profileId: string; }
 
 export default function ComposePage() {
+  return <Suspense fallback={null}><ComposeInner /></Suspense>;
+}
+
+function ComposeInner() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [content, setContent] = useState("");
+  const params = useSearchParams();
+  const [content, setContent] = useState(params.get("content") ?? "");
   const [result, setResult] = useState("");
 
   useEffect(() => {

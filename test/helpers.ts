@@ -8,6 +8,7 @@ import type { DB } from "@/db/client";
 
 // All tables, ordered so TRUNCATE ... CASCADE is unambiguous.
 const ALL_TABLES = [
+  "content_variants", "content_generations",
   "audit_log", "ai_jobs", "jobs", "attribution_results", "conversions", "touchpoints", "identities", "contact_channels",
   "contacts", "account_metrics_daily", "post_targets", "posts", "campaigns",
   "social_accounts", "profiles", "api_keys", "memberships", "journeys",
