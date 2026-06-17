@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { makeTestDb, seedOrg, seedAccount, type TestDB } from "./helpers";
 import * as schema from "@/db/schema";
-import { createPost, publishTarget, rollupPostStatus, retryTarget } from "@/lib/publishing/service";
+import { createPost, createDraftPost, publishTarget, rollupPostStatus, retryTarget } from "@/lib/publishing/service";
 import { MockChannelProvider } from "@/lib/channel/mock";
 
 let db: TestDB;
@@ -62,5 +62,27 @@ describe("publishing service", () => {
     [after] = await db.select().from(schema.postTargets).where(eq(schema.postTargets.id, t.id));
     expect(after.status).toBe("published");
     expect(after.attempts).toBe(2);
+  });
+
+  it("createDraftPost writes a draft post + target and enqueues no job", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const acc = await seedAccount(db, orgId, profileId, "twitter");
+    const post = await createDraftPost(db as any, orgId, {
+      profileId, content: "campaign draft", accountId: acc,
+      scheduledFor: "2026-07-01T00:00:00.000Z", campaignId: null, origin: "campaign", originRef: "casset_x",
+    });
+    expect(post.status).toBe("draft");
+    expect(post.origin).toBe("campaign");
+    const targets = await db.select().from(schema.postTargets).where(eq(schema.postTargets.postId, post.id));
+    expect(targets).toHaveLength(1);
+    expect(targets[0].status).toBe("pending");
+    const jobs = await db.select().from(schema.jobs);
+    expect(jobs).toHaveLength(0);
+  });
+
+  it("createDraftPost 404s for an account outside the org", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    await expect(createDraftPost(db as any, orgId, { profileId, content: "x", accountId: "missing" }))
+      .rejects.toMatchObject({ status: 404 });
   });
 });

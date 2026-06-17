@@ -60,6 +60,47 @@ export async function createPost(db: DB, orgId: string, input: CreatePostInput) 
   return post;
 }
 
+export interface CreateDraftPostInput {
+  profileId: string;
+  content: string;
+  accountId: string;
+  scheduledFor?: string | null;
+  campaignId?: string | null;
+  origin?: string;
+  originRef?: string | null;
+}
+
+// Creates a DRAFT post + one pending target without enqueuing any publish job.
+// Used by the Campaign Brain to materialize approved assets into the composer/calendar.
+export async function createDraftPost(db: DB, orgId: string, input: CreateDraftPostInput) {
+  const [account] = await db
+    .select()
+    .from(schema.socialAccounts)
+    .where(and(eq(schema.socialAccounts.orgId, orgId), eq(schema.socialAccounts.id, input.accountId)));
+  if (!account) throw new ApiError(404, "not_found", "Account not found in this org");
+
+  const postId = uuid();
+  const post = {
+    id: postId,
+    publicId: publicId("post"),
+    orgId,
+    profileId: input.profileId,
+    content: input.content,
+    mediaIds: "[]",
+    status: "draft",
+    scheduledFor: input.scheduledFor ?? null,
+    publishNow: false,
+    origin: input.origin ?? "campaign",
+    originRef: input.originRef ?? null,
+    campaignId: input.campaignId ?? null,
+  };
+  await db.insert(schema.posts).values(post);
+  await db.insert(schema.postTargets).values({
+    id: uuid(), postId, orgId, accountId: account.id, platform: account.platform, status: "pending",
+  });
+  return post;
+}
+
 export async function publishTarget(db: DB, targetId: string, provider: ChannelProvider) {
   const [target] = await db.select().from(schema.postTargets).where(eq(schema.postTargets.id, targetId));
   if (!target) throw new ApiError(404, "not_found", "Target not found");
