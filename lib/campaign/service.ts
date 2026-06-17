@@ -6,6 +6,7 @@ import { uuid, publicId } from "@/lib/ids";
 import { run as runAI } from "@/lib/ai/gateway";
 import type { AIProvider } from "@/lib/ai/provider";
 import { buildPlanPrompt, type BrandVoice, type PlanChannel } from "./prompt";
+import { createDraftPost } from "@/lib/publishing/service";
 
 export interface CreateCampaignInput {
   profileId: string;
@@ -141,4 +142,37 @@ export async function planCampaign(db: DB, orgId: string, campaignId: string, op
   }).where(and(eq(schema.campaigns.id, campaignId), eq(schema.campaigns.orgId, orgId))).returning();
 
   return { campaign: updated, assets };
+}
+
+export async function approveCampaign(db: DB, orgId: string, campaignId: string) {
+  const [campaign] = await db.select().from(schema.campaigns)
+    .where(and(eq(schema.campaigns.id, campaignId), eq(schema.campaigns.orgId, orgId)));
+  if (!campaign) throw new ApiError(404, "campaign_not_found", `No campaign ${campaignId}`);
+  if (campaign.status !== "planning") {
+    throw new ApiError(400, "invalid_state", `Campaign is ${campaign.status}; can only approve while planning`);
+  }
+
+  const assets = await db.select().from(schema.campaignAssets)
+    .where(and(eq(schema.campaignAssets.orgId, orgId), eq(schema.campaignAssets.campaignId, campaignId)));
+  const materializable = assets.filter((a) => a.accountId && !a.postId);
+  if (materializable.length === 0) {
+    throw new ApiError(400, "invalid_request", "No assets with a matched channel to materialize");
+  }
+
+  const launch = Date.now();
+  const posts = [];
+  for (const asset of materializable) {
+    const scheduledFor = new Date(launch + asset.dayOffset * 86400000).toISOString();
+    const post = await createDraftPost(db, orgId, {
+      profileId: campaign.profileId, content: asset.draftBody, accountId: asset.accountId!,
+      scheduledFor, campaignId, origin: "campaign", originRef: asset.publicId,
+    });
+    await db.update(schema.campaignAssets).set({ postId: post.id })
+      .where(and(eq(schema.campaignAssets.id, asset.id), eq(schema.campaignAssets.orgId, orgId)));
+    posts.push(post);
+  }
+
+  const [updatedCampaign] = await db.update(schema.campaigns).set({ status: "active" })
+    .where(and(eq(schema.campaigns.id, campaignId), eq(schema.campaigns.orgId, orgId))).returning();
+  return { campaign: updatedCampaign, posts };
 }
