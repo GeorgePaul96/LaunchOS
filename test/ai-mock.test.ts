@@ -26,4 +26,30 @@ describe("MockAIProvider", () => {
     expect(typeof parsed.name).toBe("string");
     expect(typeof parsed.count).toBe("number");
   });
+
+  it("fills arrays with shaped, non-empty items", async () => {
+    const p = new MockAIProvider();
+    const r = await p.complete({
+      model: "claude-opus-4-8",
+      messages: [{ role: "user", content: "gen" }],
+      jsonSchema: {
+        type: "object",
+        properties: {
+          variants: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { body: { type: "string" }, predictedScore: { type: "integer" }, rationale: { type: "string" } },
+            },
+          },
+        },
+      },
+    });
+    const parsed = JSON.parse(r.text);
+    expect(Array.isArray(parsed.variants)).toBe(true);
+    expect(parsed.variants.length).toBeGreaterThan(0);
+    expect(typeof parsed.variants[0].body).toBe("string");
+    expect(parsed.variants[0].body.length).toBeGreaterThan(0);
+    expect(typeof parsed.variants[0].predictedScore).toBe("number");
+  });
 });

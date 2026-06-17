@@ -18,7 +18,7 @@ function tokens(s: string): number {
   return Math.max(1, Math.ceil(s.length / 4));
 }
 
-// Build a minimal valid object for a JSON schema (objects/properties only; enough for tests).
+// Build a minimal valid object for a JSON schema, filling arrays + non-empty strings.
 function mockJsonForSchema(schema: Record<string, unknown>): unknown {
   const type = schema.type as string | undefined;
   if (type === "object") {
@@ -29,8 +29,11 @@ function mockJsonForSchema(schema: Record<string, unknown>): unknown {
     }
     return out;
   }
-  if (type === "array") return [];
+  if (type === "array") {
+    const items = (schema.items ?? { type: "string" }) as Record<string, unknown>;
+    return [mockJsonForSchema(items), mockJsonForSchema(items)]; // two deterministic items
+  }
   if (type === "integer" || type === "number") return 0;
   if (type === "boolean") return false;
-  return ""; // string and unspecified
+  return "mock"; // non-empty string for unspecified/string
 }

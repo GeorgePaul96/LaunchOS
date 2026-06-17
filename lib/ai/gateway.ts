@@ -42,6 +42,7 @@ export interface AIRunResult {
   model: string;
   usage: Usage;
   costCents: number;
+  jobId: number;
 }
 
 export async function run(db: DB, input: AIRunInput): Promise<AIRunResult> {
@@ -60,17 +61,18 @@ export async function run(db: DB, input: AIRunInput): Promise<AIRunResult> {
       maxTokens: input.maxTokens,
     });
     const cost = costCents(r.model, result.usage);
-    await db.insert(schema.aiJobs).values({
+    const [job] = await db.insert(schema.aiJobs).values({
       orgId: input.orgId, feature: input.feature, task: input.task, model: r.model,
       status: "succeeded", inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens,
       costCents: cost, latencyMs: Date.now() - t0,
-    });
+    }).returning({ id: schema.aiJobs.id });
     return {
       text: result.text,
       json: input.jsonSchema ? JSON.parse(result.text) : undefined,
       model: r.model,
       usage: result.usage,
       costCents: cost,
+      jobId: job.id,
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
