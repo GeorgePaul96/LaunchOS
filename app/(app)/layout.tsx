@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 const NAV = [
-  ["Dashboard", "/dashboard"], ["Compose", "/compose"], ["Calendar", "/calendar"],
-  ["Analytics", "/analytics"], ["Connections", "/settings/connections"],
+  ["Dashboard", "/dashboard"], ["Compose", "/compose"], ["Content Studio", "/content-studio"],
+  ["Calendar", "/calendar"], ["Analytics", "/analytics"], ["Connections", "/settings/connections"],
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
