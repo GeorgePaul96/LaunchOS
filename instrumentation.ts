@@ -8,7 +8,8 @@ export async function register() {
       const { startWorker } = await import("@/lib/jobs/worker");
       startWorker(db);
     } else {
-      console.log("[worker] inline mode on PGlite dev (jobs drain in-request)");
+      const { log } = await import("@/lib/log");
+      log.info("worker_inline_mode", { reason: "PGlite dev — jobs drain in-request" });
     }
   }
 }
