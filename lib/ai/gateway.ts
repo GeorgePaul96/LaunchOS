@@ -8,6 +8,7 @@ import { costCents } from "./pricing";
 import { assertWithinBudget } from "./budget";
 import { MockAIProvider } from "./mock";
 import { AnthropicProvider } from "./anthropic";
+import { log } from "@/lib/log";
 
 // Conservative pre-dispatch budget estimate (exact cost recorded post-call).
 const ESTIMATE_CENTS = 5;
@@ -18,7 +19,7 @@ export function getProvider(): AIProvider {
   if (process.env.ANTHROPIC_API_KEY) {
     cachedProvider = new AnthropicProvider();
   } else {
-    console.warn("[ai] ANTHROPIC_API_KEY not set — using MockAIProvider");
+    log.warn("ai_provider_fallback", { reason: "ANTHROPIC_API_KEY not set; using MockAIProvider" });
     cachedProvider = new MockAIProvider();
   }
   return cachedProvider;

@@ -1,12 +1,18 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { uuid, publicId } from "@/lib/ids";
-import { hashPassword, signSession, sessionSecret, SESSION_COOKIE } from "@/lib/auth";
+import { hashPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
+import { recordAudit } from "@/lib/audit";
+import { headers } from "next/headers";
+import { assertRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
   try {
+    const h = await headers();
+    const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
+    assertRateLimit(`auth:${ip}`, 10, 60_000);
     const { email, password, name } = await req.json();
     if (!email || !password) throw new ApiError(400, "invalid_request", "email and password required");
     const existing = await db.select().from(schema.users).where(eq(schema.users.email, email));
@@ -18,9 +24,10 @@ export async function POST(req: Request) {
     await db.insert(schema.memberships).values({ id: uuid(), orgId, userId, role: "owner", status: "active" });
     await db.insert(schema.profiles).values({ id: profileId, publicId: publicId("prof"), orgId, name: "Default" });
 
+    await recordAudit(db, { orgId, actorType: "user", actorId: userId, action: "auth.signup" });
     const token = signSession({ userId, orgId }, sessionSecret());
     const res = ok({ user: { id: userId, email }, org: { id: orgId } }, 201);
-    res.headers.append("set-cookie", `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax`);
+    res.headers.append("set-cookie", sessionCookie(token));
     return res;
   } catch (e) { return toProblemResponse(e); }
 }

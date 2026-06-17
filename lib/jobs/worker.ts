@@ -1,6 +1,7 @@
 import type { DB } from "@/db/client";
 import { claimJobs, completeJob, failJob } from "./queue";
 import { getHandler } from "./registry";
+import { log } from "@/lib/log";
 import "./handlers"; // side-effect: register built-in handlers
 
 export async function runWorkerOnce(db: DB, batch = 10): Promise<{ processed: number }> {
@@ -24,7 +25,7 @@ let timer: NodeJS.Timeout | null = null;
 export function startWorker(db: DB, intervalMs = 2000): void {
   if (timer) return;
   timer = setInterval(() => {
-    runWorkerOnce(db).catch((err) => console.error("[worker]", err));
+    runWorkerOnce(db).catch((err) => log.error("worker_job_failed", { error: String(err) }));
   }, intervalMs);
-  console.log("[worker] started");
+  log.info("worker_started");
 }

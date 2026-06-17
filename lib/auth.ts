@@ -17,10 +17,13 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return hashBuf.length === derived.length && timingSafeEqual(hashBuf, derived);
 }
 
-export interface SessionPayload { userId: string; orgId: string; }
+export interface SessionPayload { userId: string; orgId: string; exp?: number }
 
-export function signSession(payload: SessionPayload, secret: string): string {
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+const SESSION_TTL_SECONDS = 604800; // 7 days
+
+export function signSession(payload: SessionPayload, secret: string, ttlSeconds = SESSION_TTL_SECONDS): string {
+  const full: SessionPayload = { ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds };
+  const body = Buffer.from(JSON.stringify(full)).toString("base64url");
   const sig = createHmac("sha256", secret).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
@@ -32,15 +35,33 @@ export function verifySession(token: string, secret: string): SessionPayload | n
   const a = Buffer.from(sig), b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    return JSON.parse(Buffer.from(body, "base64url").toString()) as SessionPayload;
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as SessionPayload;
+    if (payload.exp !== undefined && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
   } catch {
     return null;
   }
 }
 
 export const SESSION_COOKIE = "launchos_session";
+
 export function sessionSecret(): string {
-  return process.env.SESSION_SECRET ?? "dev-only-secret-change-me";
+  const s = process.env.SESSION_SECRET;
+  if (s) return s;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+  return "dev-only-secret-change-me";
+}
+
+export function sessionCookie(token: string): string {
+  const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
+  return `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax;${secure} Max-Age=${SESSION_TTL_SECONDS}`;
+}
+
+export function clearedCookie(): string {
+  const secure = process.env.NODE_ENV === "production" ? " Secure;" : "";
+  return `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax;${secure} Max-Age=0`;
 }
 
 export function hashApiKey(secret: string): string {
