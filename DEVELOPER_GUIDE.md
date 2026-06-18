@@ -31,6 +31,19 @@ Files to open: the one test + the one service. Usually 2–3 files total.
 3. **New AI feature:** call `lib/ai/gateway.ts run()` only; put logic in a `lib/<feature>/` module with a pure prompt builder + a service. Worked example: `lib/viral/*`.
 4. **New table:** follow the 5-step migration workflow in [DATABASE.md](DATABASE.md) (schema → generate → custom RLS migration → `ALL_TABLES` → migrate).
 
+### Attribution pixel
+Embed the pixel in any page you want to track:
+```html
+<script async src="/pixel.js" data-write-key="pk_…"></script>
+```
+Get the write key from **`/settings/connections`** (shown alongside your connected accounts).
+
+Once loaded the pixel auto-fires a `page` event (captures UTM params + referrer) and exposes:
+- `launchos.track(event, valueCents?)` — record a named conversion (e.g. `"signup"`, `"purchase"`).
+- `launchos.identify(email)` — stitch the anonymous visitor to a known contact.
+
+Events POST to `POST /api/v1/collect` (the one unauthenticated `/v1` endpoint; see `API_MAP.md`).
+
 ### Refactoring
 - Keep public interfaces stable; refactor behind the service boundary. Tests are the safety net — they must stay green with no edits to assertions (changing assertions = behavior change, get approval).
 - Don't restructure directories: the layout is intentional and small.

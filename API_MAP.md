@@ -33,6 +33,7 @@ Responses: success via `ok(body, status)`; errors via thrown `ApiError` → `toP
 | POST | `/api/v1/attribution/touchpoints` | `attribution/touchpoints` | record a touchpoint (201) |
 | POST | `/api/v1/attribution/conversions` | `attribution/conversions` | record a conversion (201) |
 | GET | `/api/v1/attribution/report` | `attribution/report` | channel attribution (model=first/last/linear) |
+| POST | `/api/v1/collect` | `collect` | **public** pixel ingest (page/track/identify); auth via `writeKey` in body — the one unauthenticated `/v1` endpoint |
 | GET | `/api/v1/journeys/contacts/{cid}/timeline` | `journeys/contacts/[cid]/timeline` | contact journey |
 | POST | `/api/v1/api-keys` | `api-keys` | mint an API key (201) |
 | GET | `/api/v1/openapi.json` | `openapi.json` | the OpenAPI contract (undocumented in itself) |
