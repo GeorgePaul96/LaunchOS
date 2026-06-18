@@ -11,8 +11,9 @@ export const CORS_HEADERS: Record<string, string> = {
 };
 
 export function withCors(res: Response): Response {
-  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
-  return res;
+  const next = new Response(res.body, res);
+  for (const [k, v] of Object.entries(CORS_HEADERS)) next.headers.set(k, v);
+  return next;
 }
 
 export async function OPTIONS(): Promise<Response> {
