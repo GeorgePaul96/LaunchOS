@@ -14,7 +14,10 @@
       "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(channel\\): ChannelProvider interface + MockChannelProvider *)",
       "Bash(echo \"TSC:$?\")",
       "Bash(git -c 'user.name=LaunchOS Dev' -c user.email=geopaul96@gmail.com commit -q -m 'feat\\(publishing\\): post lifecycle service + in-process scheduler *)",
-      "Bash(git -c user.name=\"LaunchOS Dev\" -c user.email=\"geopaul96@gmail.com\" commit -q -m \"fix\\(test\\): derive TestDB type from drizzle return so it matches DB\")"
+      "Bash(git -c user.name=\"LaunchOS Dev\" -c user.email=\"geopaul96@gmail.com\" commit -q -m \"fix\\(test\\): derive TestDB type from drizzle return so it matches DB\")",
+      "Bash(npm run *)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(node --input-type=module -e ' *)"
     ]
   }
 }
