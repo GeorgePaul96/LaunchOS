@@ -83,4 +83,13 @@ describe("stitchContact", () => {
     const [identity] = await db.select().from(schema.identities).where(eq(schema.identities.id, idA));
     expect(identity.contactId).toBeNull();
   });
+
+  it("returns null and creates no contact for a non-existent identity", async () => {
+    const { orgId } = await seedOrg(db);
+    const before = await db.select().from(schema.contacts).where(eq(schema.contacts.orgId, orgId));
+    const res = await stitchContact(db as any, orgId, { identityId: "ghost-id", email: "nobody@example.com" });
+    expect(res).toBeNull();
+    const after = await db.select().from(schema.contacts).where(eq(schema.contacts.orgId, orgId));
+    expect(after.length).toBe(before.length); // no orphan contact created
+  });
 });

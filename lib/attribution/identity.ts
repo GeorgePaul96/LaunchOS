@@ -53,6 +53,11 @@ export interface StitchInput {
 // Link an identity to a contact (found/created by email or contactId), merge traits,
 // and set contacts.identityId if it was null. Returns the contactId (null = no-op).
 export async function stitchContact(db: DB, orgId: string, input: StitchInput): Promise<string | null> {
+  // Early guard: verify identity exists in this org, return null if not
+  const [identity] = await db.select().from(schema.identities)
+    .where(and(eq(schema.identities.id, input.identityId), eq(schema.identities.orgId, orgId)));
+  if (!identity) return null;
+
   let contactId: string | null = null;
 
   if (input.contactId) {
@@ -80,8 +85,6 @@ export async function stitchContact(db: DB, orgId: string, input: StitchInput): 
 
   if (!contactId) return null;
 
-  const [identity] = await db.select().from(schema.identities)
-    .where(and(eq(schema.identities.id, input.identityId), eq(schema.identities.orgId, orgId)));
   const patch: Record<string, unknown> = { contactId };
   if (input.traits && Object.keys(input.traits).length) {
     let existing: Record<string, unknown> = {};
