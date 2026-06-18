@@ -8,8 +8,8 @@ describe("mcp", () => {
   it("registers the curated tool set", () => {
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
-      "attribution_report", "contact_journey", "create_post", "generate_content",
-      "list_accounts", "list_posts", "record_conversion", "record_touchpoint",
+      "attribution_report", "contact_journey", "create_campaign", "create_post", "generate_content",
+      "list_accounts", "list_posts", "plan_campaign", "record_conversion", "record_touchpoint",
     ]);
   });
 
@@ -19,6 +19,14 @@ describe("mcp", () => {
     const tool = tools.find((t) => t.name === "generate_content")!;
     await tool.run(stub, { profileId: "p", intent: "hook", prompt: "x" });
     expect(got).toMatchObject({ profileId: "p", intent: "hook", prompt: "x" });
+  });
+
+  it("create_campaign routes to the SDK campaigns resource", async () => {
+    let got: unknown;
+    const stub = { campaigns: { create: async (a: unknown) => { got = a; return { campaign: {} }; } } } as unknown as LaunchOSClient;
+    const tool = tools.find((t) => t.name === "create_campaign")!;
+    await tool.run(stub, { profileId: "p", name: "C", objective: "o", accountIds: ["a"] });
+    expect(got).toMatchObject({ profileId: "p", name: "C", accountIds: ["a"] });
   });
 
   it("routes a tool call through the client", async () => {
