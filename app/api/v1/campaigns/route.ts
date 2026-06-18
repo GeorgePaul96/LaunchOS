@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const ctx = await requireContext();
-    const body = await req.json().catch(() => ({});
+    const body = await req.json().catch(() => ({}));
     if (!body.profileId || !body.name || !body.objective || !Array.isArray(body.accountIds)) {
       throw new ApiError(400, "invalid_request", "profileId, name, objective and accountIds[] are required");
     }

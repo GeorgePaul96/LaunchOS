@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 const NAV = [
   ["Dashboard", "/dashboard"], ["Compose", "/compose"], ["Content Studio", "/content-studio"],
+  ["Campaigns", "/campaigns"],
   ["Calendar", "/calendar"], ["Analytics", "/analytics"], ["Connections", "/settings/connections"],
 ];
 
