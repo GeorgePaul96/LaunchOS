@@ -61,7 +61,7 @@ Zernio plus the 11 remaining differentiating systems, plus the production-grade 
 |------|-------|---------|---------|
 | **P0** ✅ | Wedge | Flywheel slice runs locally | §1.1 |
 | **P1** ✅ | Production foundation | The slice, but production-grade & multi-tenant-safe | ✅ Postgres+RLS; ✅ durable jobs; ✅ AI gateway; ✅ OpenAPI/SDK/MCP; ✅ observability/security (logging, request-id, audit, rate-limit; metrics/governor deferred). Billing deferred (low value for personal use). |
-| **P2** 🔄 | MVP completion | Spec §11 fully met | ✅ Viral Generator; ⬜ real wrapped provider (5 channels), Campaign Brain, inbox read+reply, attribution pixel |
+| **P2** 🔄 | MVP completion | Spec §11 fully met | ✅ Viral Generator; ✅ Campaign Brain; ⬜ real wrapped provider (5 channels), inbox read+reply, attribution pixel |
 | **P3** ⬜ | Substrate parity | Full Zernio parity | All 15 channels, ads, WhatsApp numbers, broadcasts, sequences, comment-to-DM automations, webhooks |
 | **P4** ⬜ | Intelligence & autonomy | 8 of 12 new systems | Agent runtime, Competitor Intel, Landing Pages, Experiments, Workflow Builder, Attribution v2 |
 | **P5** ⬜ | Ecosystem & native | Remaining systems + margin/scale | Native platform adapters (top 5), Launch Assistant, Agent Marketplace, Affiliate Manager, Attribution v3, columnar analytics, enterprise (SSO/SCIM, residency), SOC 2 Type II |
@@ -188,7 +188,7 @@ against.
 - **Status:** done 2026-06-17. Spec: `docs/superpowers/specs/2026-06-17-viral-content-generator-design.md`;
   plan: `docs/superpowers/plans/2026-06-17-viral-content-generator.md`. 117 tests green.
 
-### 5.3 ⬜ AI Campaign Brain v1
+### 5.3 ✅ AI Campaign Brain v1
 - **Scope:** goal → plan (calendar + channel mix + budget split + asset briefs + KPIs);
   manual approve materializes draft assets into composer/calendar; re-plan on demand.
 - **Data:** `campaigns`, `campaign_assets`.
@@ -198,6 +198,8 @@ against.
 - **Depends on:** AI gateway, Viral Gen, attribution (✅).
 - **Acceptance:** plan is concrete + editable; approving creates real draft posts; results
   panel reads attributed outcomes, not vanity metrics.
+- **Status:** done 2026-06-17. Spec: `docs/superpowers/specs/2026-06-17-ai-campaign-brain-design.md`;
+  plan: `docs/superpowers/plans/2026-06-17-ai-campaign-brain.md`. All tests green.
 
 ### 5.4 ⬜ Attribution pixel + journey hardening
 - **Scope:** embeddable `pixel.js` + public ingest for `/attribution/identify|touchpoints|

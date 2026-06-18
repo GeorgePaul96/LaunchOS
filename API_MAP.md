@@ -24,6 +24,11 @@ Responses: success via `ok(body, status)`; errors via thrown `ApiError` → `toP
 | POST | `/api/v1/content/generate` | `content/generate` | generate scored variants (201) |
 | GET | `/api/v1/content/generations` | `content/generations` | list generations + variants |
 | POST | `/api/v1/content/variants/{id}/choose` | `content/variants/[id]/choose` | mark a variant chosen |
+| GET/POST | `/api/v1/campaigns` | `campaigns` | list / create a campaign (201) |
+| GET | `/api/v1/campaigns/{id}` | `campaigns/[id]` | get campaign + assets |
+| POST | `/api/v1/campaigns/{id}/plan` | `campaigns/[id]/plan` | generate (or re-generate) the AI plan |
+| POST | `/api/v1/campaigns/{id}/approve` | `campaigns/[id]/approve` | approve plan → materialize draft posts |
+| GET | `/api/v1/campaigns/{id}/results` | `campaigns/[id]/results` | campaign-scoped attribution results |
 | POST | `/api/v1/attribution/identify` | `attribution/identify` | identify / stitch identity |
 | POST | `/api/v1/attribution/touchpoints` | `attribution/touchpoints` | record a touchpoint (201) |
 | POST | `/api/v1/attribution/conversions` | `attribution/conversions` | record a conversion (201) |
