@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { uuid, publicId } from "@/lib/ids";
+import { generateWriteKey } from "@/lib/auth";
 import type { DB } from "@/db/client";
 
 // All tables, ordered so TRUNCATE ... CASCADE is unambiguous.
@@ -75,6 +76,7 @@ export async function seedOrg(db: TestDB) {
   const profileId = uuid();
   await db.insert(schema.organizations).values({
     id: orgId, publicId: publicId("org"), name: "Acme", slug: "acme-" + orgId.slice(0, 8),
+    writeKey: generateWriteKey(),
   });
   await db.insert(schema.profiles).values({
     id: profileId, publicId: publicId("prof"), orgId, name: "Acme Brand",

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "./client";
 import { uuid, publicId } from "../lib/ids";
-import { hashPassword } from "../lib/auth";
+import { hashPassword, generateWriteKey } from "../lib/auth";
 
 const CHANNELS = ["organic_social", "paid_social", "email"] as const;
 const PLATFORMS = ["twitter", "linkedin", "instagram", "tiktok"] as const;
@@ -17,6 +17,7 @@ async function main() {
   const orgId = uuid();
   await db.insert(schema.organizations).values({
     id: orgId, publicId: publicId("org"), name: "Demo Co", slug: "demo-co",
+    writeKey: generateWriteKey(),
   });
 
   const userId = uuid();

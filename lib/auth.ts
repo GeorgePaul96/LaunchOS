@@ -72,3 +72,7 @@ export function generateApiKey(): { secret: string; hash: string; prefix: string
   const secret = "sk_" + randomBytes(32).toString("hex");
   return { secret, hash: hashApiKey(secret), prefix: secret.slice(0, 8) };
 }
+
+export function generateWriteKey(): string {
+  return "pk_" + randomBytes(24).toString("hex");
+}

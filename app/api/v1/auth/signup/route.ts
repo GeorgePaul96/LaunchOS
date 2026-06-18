@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { uuid, publicId } from "@/lib/ids";
-import { hashPassword, signSession, sessionSecret, sessionCookie } from "@/lib/auth";
+import { hashPassword, signSession, sessionSecret, sessionCookie, generateWriteKey } from "@/lib/auth";
 import { ApiError, toProblemResponse } from "@/lib/errors";
 import { ok } from "@/lib/request";
 import { recordAudit } from "@/lib/audit";
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     if (existing.length) throw new ApiError(409, "conflict", "Email already registered");
 
     const orgId = uuid(), userId = uuid(), profileId = uuid();
-    await db.insert(schema.organizations).values({ id: orgId, publicId: publicId("org"), name: name ? `${name}'s Org` : "My Org", slug: "org-" + orgId.slice(0, 8) });
+    await db.insert(schema.organizations).values({ id: orgId, publicId: publicId("org"), name: name ? `${name}'s Org` : "My Org", slug: "org-" + orgId.slice(0, 8), writeKey: generateWriteKey() });
     await db.insert(schema.users).values({ id: userId, publicId: publicId("user"), email, name: name ?? null, passwordHash: await hashPassword(password) });
     await db.insert(schema.memberships).values({ id: uuid(), orgId, userId, role: "owner", status: "active" });
     await db.insert(schema.profiles).values({ id: profileId, publicId: publicId("prof"), orgId, name: "Default" });

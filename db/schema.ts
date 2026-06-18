@@ -14,6 +14,7 @@ export const organizations = pgTable("organizations", {
   plan: text("plan").notNull().default("free"),
   brandSettings: text("brand_settings").notNull().default("{}"),
   featureFlags: text("feature_flags").notNull().default("{}"),
+  writeKey: text("write_key").notNull().default(""),
   createdAt: text("created_at").notNull().$defaultFn(now),
   updatedAt: text("updated_at").notNull().$defaultFn(now),
 });

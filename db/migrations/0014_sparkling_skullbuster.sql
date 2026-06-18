@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "write_key" text DEFAULT '' NOT NULL;
