@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { DB } from "@/db/client";
 import { schema } from "@/db/client";
-import { uuid } from "@/lib/ids";
+import { uuid, publicId } from "@/lib/ids";
 
 export interface IdentifyInput {
   anonymousId: string;
@@ -41,4 +41,61 @@ export async function identify(db: DB, orgId: string, input: IdentifyInput): Pro
     traits: JSON.stringify(input.traits ?? {}),
   });
   return id;
+}
+
+export interface StitchInput {
+  identityId: string;
+  email?: string | null;
+  contactId?: string | null;
+  traits?: Record<string, unknown>;
+}
+
+// Link an identity to a contact (found/created by email or contactId), merge traits,
+// and set contacts.identityId if it was null. Returns the contactId (null = no-op).
+export async function stitchContact(db: DB, orgId: string, input: StitchInput): Promise<string | null> {
+  let contactId: string | null = null;
+
+  if (input.contactId) {
+    const [c] = await db.select().from(schema.contacts)
+      .where(and(eq(schema.contacts.id, input.contactId), eq(schema.contacts.orgId, orgId)));
+    if (c) contactId = c.id;
+  }
+
+  if (!contactId && input.email) {
+    const email = input.email.trim().toLowerCase();
+    const matches = await db.select().from(schema.contacts)
+      .where(and(eq(schema.contacts.orgId, orgId), eq(schema.contacts.email, email)))
+      .orderBy(asc(schema.contacts.createdAt));
+    if (matches.length) {
+      contactId = matches[0].id;
+    } else {
+      contactId = uuid();
+      await db.insert(schema.contacts).values({
+        id: contactId, publicId: publicId("contact"), orgId,
+        name: (input.traits?.name as string | undefined) ?? null,
+        email, lifecycleStage: "lead",
+      });
+    }
+  }
+
+  if (!contactId) return null;
+
+  const [identity] = await db.select().from(schema.identities)
+    .where(and(eq(schema.identities.id, input.identityId), eq(schema.identities.orgId, orgId)));
+  const patch: Record<string, unknown> = { contactId };
+  if (input.traits && Object.keys(input.traits).length) {
+    let existing: Record<string, unknown> = {};
+    try { existing = JSON.parse(identity?.traits || "{}"); } catch { existing = {}; }
+    patch.traits = JSON.stringify({ ...existing, ...input.traits });
+  }
+  await db.update(schema.identities).set(patch)
+    .where(and(eq(schema.identities.id, input.identityId), eq(schema.identities.orgId, orgId)));
+
+  const [contact] = await db.select().from(schema.contacts)
+    .where(and(eq(schema.contacts.id, contactId), eq(schema.contacts.orgId, orgId)));
+  if (contact && !contact.identityId) {
+    await db.update(schema.contacts).set({ identityId: input.identityId })
+      .where(and(eq(schema.contacts.id, contactId), eq(schema.contacts.orgId, orgId)));
+  }
+  return contactId;
 }
