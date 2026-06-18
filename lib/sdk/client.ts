@@ -1,7 +1,7 @@
 import { LaunchOSApiError } from "./errors";
 import type {
   ClientOptions, CreatePostInput, IdentifyInput, TouchpointInput, ConversionInput,
-  CreateApiKeyInput, AttributionModel, GenerateContentInput,
+  CreateApiKeyInput, AttributionModel, GenerateContentInput, CreateCampaignInput,
 } from "./types";
 
 export class LaunchOSClient {
@@ -58,5 +58,14 @@ export class LaunchOSClient {
     generate: (input: GenerateContentInput) => this.req<{ generation: unknown; variants: unknown[] }>("POST", "/content/generate", input),
     list: () => this.req<{ data: unknown[] }>("GET", "/content/generations"),
     choose: (variantId: string) => this.req<{ variant: { id: string; chosen: boolean } }>("POST", `/content/variants/${encodeURIComponent(variantId)}/choose`),
+  };
+
+  campaigns = {
+    create: (input: CreateCampaignInput) => this.req<{ campaign: unknown }>("POST", "/campaigns", input),
+    list: () => this.req<{ data: unknown[] }>("GET", "/campaigns"),
+    get: (id: string) => this.req<{ campaign: unknown; assets: unknown[]; channelMix: unknown[] }>("GET", `/campaigns/${encodeURIComponent(id)}`),
+    plan: (id: string, body?: { horizonDays?: number }) => this.req<{ campaign: unknown; assets: unknown[] }>("POST", `/campaigns/${encodeURIComponent(id)}/plan`, body ?? {}),
+    approve: (id: string) => this.req<{ campaign: unknown; posts: unknown[] }>("POST", `/campaigns/${encodeURIComponent(id)}/approve`),
+    results: (id: string, model: AttributionModel) => this.req<unknown>("GET", `/campaigns/${encodeURIComponent(id)}/results?model=${encodeURIComponent(model)}`),
   };
 }

@@ -19,6 +19,16 @@ export interface GenerateContentInput {
   count?: number;
 }
 
+export interface CreateCampaignInput {
+  profileId: string;
+  name: string;
+  objective: string;
+  goalMetric?: string | null;
+  goalTarget?: number | null;
+  budgetCents?: number | null;
+  accountIds: string[];
+}
+
 export interface ClientOptions {
   baseUrl?: string;            // origin, e.g. http://localhost:3000
   apiKey: string;

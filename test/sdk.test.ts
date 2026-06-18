@@ -53,6 +53,26 @@ describe("LaunchOSClient", () => {
     expect(calls[0].init.method).toBe("POST");
   });
 
+  it("POSTs campaigns.create and GETs campaigns.get", async () => {
+    const { fn, calls } = stubFetch(201, { campaign: { id: "camp_1" } });
+    const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_test", fetch: fn });
+    await client.campaigns.create({ profileId: "p", name: "C", objective: "o", accountIds: ["a"] });
+    expect(calls[0].url).toBe("http://x/api/v1/campaigns");
+    expect(calls[0].init.method).toBe("POST");
+    expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ profileId: "p", name: "C", accountIds: ["a"] });
+  });
+
+  it("POSTs campaigns.plan/approve and GETs results with model", async () => {
+    const { fn, calls } = stubFetch(200, { ok: true });
+    const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_test", fetch: fn });
+    await client.campaigns.plan("camp_1", { horizonDays: 7 });
+    expect(calls[0].url).toBe("http://x/api/v1/campaigns/camp_1/plan");
+    await client.campaigns.approve("camp_1");
+    expect(calls[1].url).toBe("http://x/api/v1/campaigns/camp_1/approve");
+    await client.campaigns.results("camp_1", "linear");
+    expect(calls[2].url).toBe("http://x/api/v1/campaigns/camp_1/results?model=linear");
+  });
+
   it("throws LaunchOSApiError on non-2xx problem+json", async () => {
     const { fn } = stubFetch(401, { code: "unauthorized", detail: "Invalid API key" });
     const client = new LaunchOSClient({ baseUrl: "http://x", apiKey: "sk_bad", fetch: fn });
