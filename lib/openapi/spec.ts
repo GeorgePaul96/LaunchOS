@@ -64,5 +64,21 @@ export const openapiSpec = {
     },
     "/content/generations": { get: { summary: "List content generations", responses: resp() } },
     "/content/variants/{id}/choose": { post: { summary: "Mark a variant chosen", parameters: [pathParam("id")], responses: resp() } },
+    "/campaigns": {
+      get: { summary: "List campaigns", responses: resp() },
+      post: {
+        summary: "Create a campaign",
+        requestBody: jsonBody({
+          profileId: { type: "string" }, name: { type: "string" }, objective: { type: "string" },
+          goalMetric: { type: "string" }, goalTarget: { type: "integer" }, budgetCents: { type: "integer" },
+          accountIds: { type: "array", items: { type: "string" } },
+        }, ["profileId", "name", "objective", "accountIds"]),
+        responses: resp(201),
+      },
+    },
+    "/campaigns/{id}": { get: { summary: "Get a campaign with assets + channel mix", parameters: [pathParam("id")], responses: resp() } },
+    "/campaigns/{id}/plan": { post: { summary: "Generate (or re-generate) the AI plan", parameters: [pathParam("id")], requestBody: jsonBody({ horizonDays: { type: "integer" } }, []), responses: resp() } },
+    "/campaigns/{id}/approve": { post: { summary: "Approve plan → materialize draft posts", parameters: [pathParam("id")], responses: resp() } },
+    "/campaigns/{id}/results": { get: { summary: "Campaign-scoped attribution report", parameters: [pathParam("id"), queryParam("model")], responses: resp() } },
   },
 } as const;
