@@ -4,6 +4,10 @@ import { makeTestDb, seedOrg, type TestDB } from "./helpers";
 import * as schema from "@/db/schema";
 import { uuid, publicId } from "@/lib/ids";
 import { collectEvent, parseCollectBody } from "@/lib/attribution/collect";
+import { resolveWriteKeyOrg } from "@/lib/apikey";
+import { buildReport } from "@/lib/attribution/report";
+import { campaignResults } from "@/lib/campaign/service";
+import { contactTimeline } from "@/lib/journey/timeline";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -67,5 +71,37 @@ describe("collectEvent", () => {
     await expect(collectEvent(db as any, orgId, { type: "page" })).rejects.toMatchObject({ status: 400 });
     await expect(collectEvent(db as any, orgId, { type: "nope", anonymousId: "a" } as any)).rejects.toMatchObject({ status: 400 });
     await expect(collectEvent(db as any, orgId, { type: "track", anonymousId: "a" })).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("attribution loop end-to-end", () => {
+  it("write key → page(campaign) → identify → track → report + campaign results + timeline", async () => {
+    const { orgId, profileId } = await seedOrg(db);
+    const [org] = await db.select().from(schema.organizations).where(eq(schema.organizations.id, orgId));
+
+    // The pixel resolves the org purely from the write key.
+    const resolved = await resolveWriteKeyOrg(db as any, org.writeKey);
+    expect(resolved).toBe(orgId);
+
+    const campId = uuid();
+    await db.insert(schema.campaigns).values({ id: campId, publicId: publicId("camp"), orgId, profileId, name: "Launch", objective: "signups", status: "active" });
+
+    await collectEvent(db as any, orgId, { type: "page", anonymousId: "v1", url: "https://site/lp", campaignId: campId, utm: { utm_source: "twitter" } });
+    await collectEvent(db as any, orgId, { type: "identify", anonymousId: "v1", email: "buyer@example.com" });
+    await collectEvent(db as any, orgId, { type: "track", anonymousId: "v1", event: "signup", valueCents: 5000 });
+
+    // Channel report credits the web channel.
+    const report = await buildReport(db as any, orgId, "linear");
+    expect(report.channels.map((c) => c.channel)).toContain("web");
+
+    // Campaign-scoped results reflect the conversion through the campaign touchpoint.
+    const camp = await campaignResults(db as any, orgId, campId, "linear");
+    expect(camp.totalConversions).toBeGreaterThan(0);
+    expect(camp.channels.map((c) => c.channel)).toContain("web");
+
+    // Contact timeline shows the pageview then the signup, in order.
+    const [identity] = await db.select().from(schema.identities).where(eq(schema.identities.anonymousId, "v1"));
+    const tl = await contactTimeline(db as any, orgId, identity.contactId!);
+    expect(tl.map((e) => e.kind)).toEqual(["touchpoint", "conversion"]);
   });
 });
