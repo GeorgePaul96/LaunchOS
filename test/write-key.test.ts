@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { makeTestDb, seedOrg, type TestDB } from "./helpers";
 import * as schema from "@/db/schema";
 import { generateWriteKey } from "@/lib/auth";
+import { resolveWriteKeyOrg } from "@/lib/apikey";
 
 let db: TestDB;
 beforeEach(async () => { db = await makeTestDb(); });
@@ -25,5 +26,23 @@ describe("write key", () => {
     const [orgA] = await db.select().from(schema.organizations).where(eq(schema.organizations.id, a.orgId));
     expect(orgA.writeKey).not.toBe("");
     expect(b.orgId).not.toBe(a.orgId);
+  });
+});
+
+describe("resolveWriteKeyOrg", () => {
+  it("resolves a valid pk_ key to its org and isolates across orgs", async () => {
+    const a = await seedOrg(db);
+    const b = await seedOrg(db);
+    const [orgA] = await db.select().from(schema.organizations).where(eq(schema.organizations.id, a.orgId));
+    const [orgB] = await db.select().from(schema.organizations).where(eq(schema.organizations.id, b.orgId));
+    expect(await resolveWriteKeyOrg(db as any, orgA.writeKey)).toBe(a.orgId);
+    expect(await resolveWriteKeyOrg(db as any, orgB.writeKey)).toBe(b.orgId);
+  });
+
+  it("returns null for missing / empty / sk_-prefixed / unknown keys", async () => {
+    await seedOrg(db);
+    expect(await resolveWriteKeyOrg(db as any, "")).toBeNull();
+    expect(await resolveWriteKeyOrg(db as any, "sk_deadbeef")).toBeNull();
+    expect(await resolveWriteKeyOrg(db as any, "pk_does_not_exist")).toBeNull();
   });
 });

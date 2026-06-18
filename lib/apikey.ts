@@ -20,3 +20,11 @@ export async function resolveApiKeyOrg(db: DB, secret: string): Promise<ApiKeyCo
   await db.update(schema.apiKeys).set({ lastUsedAt: new Date().toISOString() }).where(eq(schema.apiKeys.id, row.id));
   return { orgId: row.orgId, userId: row.createdBy ?? "" };
 }
+
+// Resolve a publishable write key (pk_...) to its org via the service-role db.
+// Unlike sk_ keys, write keys are stored in plaintext (publishable by design).
+export async function resolveWriteKeyOrg(db: DB, writeKey: string): Promise<string | null> {
+  if (!writeKey || !writeKey.startsWith("pk_")) return null;
+  const [row] = await db.select().from(schema.organizations).where(eq(schema.organizations.writeKey, writeKey));
+  return row?.id ?? null;
+}
