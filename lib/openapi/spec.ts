@@ -80,5 +80,14 @@ export const openapiSpec = {
     "/campaigns/{id}/plan": { post: { summary: "Generate (or re-generate) the AI plan", parameters: [pathParam("id")], requestBody: jsonBody({ horizonDays: { type: "integer" } }, []), responses: resp() } },
     "/campaigns/{id}/approve": { post: { summary: "Approve plan → materialize draft posts", parameters: [pathParam("id")], responses: resp() } },
     "/campaigns/{id}/results": { get: { summary: "Campaign-scoped attribution report", parameters: [pathParam("id"), queryParam("model")], responses: resp() } },
+    "/collect": {
+      post: {
+        summary: "Public pixel ingest (page/track/identify) — auth via body writeKey, not bearer",
+        security: [],
+        requestBody: jsonBody({ writeKey: { type: "string" }, anonymousId: { type: "string" }, type: { type: "string" } }, ["writeKey", "anonymousId", "type"]),
+        responses: resp(),
+      },
+      options: { summary: "CORS preflight", security: [], responses: resp() },
+    },
   },
 } as const;
